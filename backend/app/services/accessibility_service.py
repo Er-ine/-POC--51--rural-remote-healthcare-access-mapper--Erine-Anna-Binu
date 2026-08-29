@@ -9,11 +9,11 @@ from app.models.schemas import (
 
 def calculate_distance(lat1, lon1, lat2, lon2):
     """
-    Calculate the distance between two geographic
-    coordinates using the Haversine formula.
+    Calculate distance between two geographic coordinates
+    using the Haversine formula.
     """
 
-    earth_radius = 6371  # Radius of Earth in kilometers
+    earth_radius = 6371
 
     lat1 = radians(lat1)
     lon1 = radians(lon1)
@@ -39,14 +39,23 @@ def analyze_accessibility(
     settlements: list[Settlement],
     facilities: list[HealthcareFacility],
 ):
+
     results = []
 
     for settlement in settlements:
 
+        # Only consider healthcare facilities
+        # within the same country.
+        country_facilities = [
+            facility
+            for facility in facilities
+            if facility.country == settlement.country
+        ]
+
         nearest_facility = None
         shortest_distance = float("inf")
 
-        for facility in facilities:
+        for facility in country_facilities:
 
             distance = calculate_distance(
                 settlement.latitude,
@@ -59,11 +68,16 @@ def analyze_accessibility(
                 shortest_distance = distance
                 nearest_facility = facility
 
-        # Classify accessibility
+        if nearest_facility is None:
+            continue
+
+        # Accessibility classification
         if shortest_distance <= 5:
             status = "Well Served"
+
         elif shortest_distance <= 15:
             status = "Moderate Access"
+
         else:
             status = "Underserved"
 
@@ -71,6 +85,8 @@ def analyze_accessibility(
             AccessibilityResult(
                 settlement_id=settlement.id,
                 settlement_name=settlement.name,
+                country=settlement.country,
+                population=settlement.population,
                 nearest_facility=nearest_facility.name,
                 distance_km=round(shortest_distance, 2),
                 accessibility_status=status,
