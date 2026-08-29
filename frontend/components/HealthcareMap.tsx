@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useMemo } from "react";
 import L from "leaflet";
 
 import {
@@ -8,6 +9,7 @@ import {
   Marker,
   Popup,
   CircleMarker,
+  useMap,
 } from "react-leaflet";
 
 import "leaflet/dist/leaflet.css";
@@ -16,7 +18,6 @@ import {
   healthcareFacilities,
   settlements,
 } from "@/lib/mockData";
-
 
 type AccessibilityResult = {
   settlement_id: number;
@@ -28,351 +29,298 @@ type AccessibilityResult = {
   accessibility_status: string;
 };
 
-
-type Country = "All" | "Oman" | "Saudi Arabia";
-
-
-type HealthcareMapProps = {
-  analysisResults?: AccessibilityResult[];
-  selectedCountry?: Country;
+type Props = {
+  analysisResults: AccessibilityResult[];
+  selectedCountry: "All" | "Oman" | "Saudi Arabia";
+  selectedSettlement: AccessibilityResult | null;
+  onSettlementSelect: (
+    settlement: AccessibilityResult
+  ) => void;
 };
 
-
-// Fix Leaflet marker icons
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 
 L.Icon.Default.mergeOptions({
   iconRetinaUrl:
     "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-
   iconUrl:
     "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-
   shadowUrl:
     "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
+function MapController({
+  selectedSettlement,
+}: {
+  selectedSettlement: AccessibilityResult | null;
+}) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!selectedSettlement) return;
+
+    map.flyTo(
+      [
+        selectedSettlementLatitude(
+          selectedSettlement.settlement_id
+        ),
+        selectedSettlementLongitude(
+          selectedSettlement.settlement_id
+        ),
+      ],
+      Math.max(map.getZoom(), 6),
+      {
+        duration: 0.45,
+      }
+    );
+  }, [selectedSettlement, map]);
+
+  return null;
+}
+
+function selectedSettlementLatitude(id: number) {
+  const settlement = settlements.find(
+    (item) => item.id === id
+  );
+
+  return settlement?.lat ?? 23.5;
+}
+
+function selectedSettlementLongitude(id: number) {
+  const settlement = settlements.find(
+    (item) => item.id === id
+  );
+
+  return settlement?.lng ?? 50;
+}
 
 export default function HealthcareMap({
-  analysisResults = [],
-  selectedCountry = "All",
-}: HealthcareMapProps) {
+  analysisResults,
+  selectedCountry,
+  selectedSettlement,
+  onSettlementSelect,
+}: Props) {
+  const visibleSettlements = useMemo(() => {
+    return settlements.filter(
+      (settlement) =>
+        selectedCountry === "All" ||
+        settlement.country === selectedCountry
+    );
+  }, [selectedCountry]);
 
+  const visibleFacilities = useMemo(() => {
+    return healthcareFacilities.filter(
+      (facility) =>
+        selectedCountry === "All" ||
+        facility.country === selectedCountry
+    );
+  }, [selectedCountry]);
 
-  // Filter healthcare facilities
-  const filteredFacilities =
-    selectedCountry === "All"
-      ? healthcareFacilities
-      : healthcareFacilities.filter(
-          (facility) => facility.country === selectedCountry
-        );
+  const resultMap = useMemo(() => {
+    const map = new Map<
+      number,
+      AccessibilityResult
+    >();
 
+    analysisResults.forEach((result) => {
+      map.set(result.settlement_id, result);
+    });
 
-  // Filter settlements
-  const filteredSettlements =
-    selectedCountry === "All"
-      ? settlements
-      : settlements.filter(
-          (settlement) => settlement.country === selectedCountry
-        );
-
+    return map;
+  }, [analysisResults]);
 
   return (
-    <div className="relative h-[600px] w-full overflow-hidden rounded-xl border">
-
-
+    <div className="relative h-full w-full">
       <MapContainer
         center={[23.5, 50]}
         zoom={5}
+        minZoom={4}
+        maxZoom={10}
         scrollWheelZoom={true}
+        preferCanvas={true}
         className="h-full w-full"
       >
-
-
-        {/* Map tiles */}
         <TileLayer
           attribution="&copy; OpenStreetMap contributors"
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
+        <MapController
+          selectedSettlement={selectedSettlement}
+        />
 
-        {/* ===================================================== */}
         {/* HEALTHCARE FACILITIES */}
-        {/* ===================================================== */}
-
-        {filteredFacilities.map((facility) => (
-
+        {visibleFacilities.map((facility) => (
           <Marker
-            key={facility.id}
+            key={`facility-${facility.id}`}
             position={[
               facility.lat,
               facility.lng,
             ]}
           >
-
             <Popup>
-
-              <div className="space-y-1">
-
-                <h3 className="text-base font-bold text-slate-900">
+              <div className="min-w-[190px]">
+                <h3 className="font-bold">
                   {facility.name}
                 </h3>
 
+                <div className="mt-2 space-y-1 text-sm">
+                  <p>
+                    <strong>Type:</strong>{" "}
+                    {facility.type}
+                  </p>
 
-                <p>
-                  <strong>Type:</strong>{" "}
-                  {facility.type}
-                </p>
+                  <p>
+                    <strong>Country:</strong>{" "}
+                    {facility.country}
+                  </p>
 
+                  <p>
+                    <strong>Capacity:</strong>{" "}
+                    {facility.capacity}
+                  </p>
 
-                <p>
-                  <strong>Country:</strong>{" "}
-                  {facility.country}
-                </p>
-
-
-                <p>
-                  <strong>Capacity:</strong>{" "}
-                  {facility.capacity.toLocaleString()}
-                </p>
-
-
-                <p>
-                  <strong>Specialties:</strong>{" "}
-                  {facility.specialties.join(", ")}
-                </p>
-
+                  <p>
+                    <strong>Specialties:</strong>{" "}
+                    {facility.specialties.join(", ")}
+                  </p>
+                </div>
               </div>
-
             </Popup>
-
           </Marker>
-
         ))}
 
-
-        {/* ===================================================== */}
         {/* SETTLEMENTS */}
-        {/* ===================================================== */}
+        {visibleSettlements.map((settlement) => {
+          const result = resultMap.get(settlement.id);
 
-        {filteredSettlements.map((settlement) => {
+          const isSelected =
+            selectedSettlement?.settlement_id ===
+            settlement.id;
 
+          const travelTime =
+            settlement.travelTime;
 
-          // Find backend analysis for this settlement
-          const analysis = analysisResults.find(
-            (result) =>
-              result.settlement_id === settlement.id
-          );
-
-
-          // Default color
-          let color = "#16a34a";
-
-
-          // Use backend accessibility classification
-          if (analysis) {
-
-            if (
-              analysis.accessibility_status ===
-              "Underserved"
-            ) {
-              color = "#dc2626";
-            }
-
-            else if (
-              analysis.accessibility_status ===
-              "Moderate Access"
-            ) {
-              color = "#f59e0b";
-            }
-
-            else if (
-              analysis.accessibility_status ===
-              "Well Served"
-            ) {
-              color = "#16a34a";
-            }
-
-          }
-
+          const color =
+            travelTime > 60
+              ? "#ef4444"
+              : travelTime > 30
+                ? "#f59e0b"
+                : "#22c55e";
 
           return (
-
             <CircleMarker
-              key={settlement.id}
+              key={`settlement-${settlement.id}`}
               center={[
                 settlement.lat,
                 settlement.lng,
               ]}
-              radius={10}
+              radius={isSelected ? 13 : 9}
               pathOptions={{
-                color: color,
+                color: isSelected
+                  ? "#ffffff"
+                  : color,
+                weight: isSelected ? 3 : 2,
                 fillColor: color,
-                fillOpacity: 0.7,
-                weight: 3,
+                fillOpacity: isSelected ? 0.95 : 0.75,
+              }}
+              eventHandlers={{
+                click: () => {
+                  if (result) {
+                    onSettlementSelect(result);
+                  }
+                },
               }}
             >
-
               <Popup>
-
-                <div className="space-y-2">
-
-                  {/* Settlement name */}
-                  <h3 className="text-base font-bold text-slate-900">
+                <div className="min-w-[210px]">
+                  <h3 className="font-bold">
                     {settlement.name}
                   </h3>
 
-
-                  {/* Country */}
-                  <p>
-                    <strong>Country:</strong>{" "}
+                  <p className="text-xs text-slate-500">
                     {settlement.country}
                   </p>
 
-
-                  {/* Population */}
-                  <p>
-                    <strong>Population:</strong>{" "}
-                    {settlement.population.toLocaleString()}
-                  </p>
-
-
-                  {/* Backend analysis */}
-                  {analysis ? (
-
-                    <>
-
-                      <p>
-                        <strong>
-                          Nearest facility:
-                        </strong>{" "}
-                        {analysis.nearest_facility}
-                      </p>
-
-
-                      <p>
-                        <strong>
-                          Distance:
-                        </strong>{" "}
-                        {analysis.distance_km} km
-                      </p>
-
-
-                      <p>
-                        <strong>
-                          Accessibility:
-                        </strong>{" "}
-
-                        <span
-                          className={
-                            analysis.accessibility_status ===
-                            "Underserved"
-                              ? "font-bold text-red-600"
-                              : analysis.accessibility_status ===
-                                  "Moderate Access"
-                                ? "font-bold text-amber-500"
-                                : "font-bold text-green-600"
-                          }
-                        >
-                          {analysis.accessibility_status}
-                        </span>
-
-                      </p>
-
-                    </>
-
-                  ) : (
-
-                    /* Fallback if backend data isn't available */
+                  <div className="mt-2 space-y-1 text-sm">
                     <p>
-                      <strong>
-                        Travel time:
-                      </strong>{" "}
-                      {settlement.travelTime} minutes
+                      <strong>Population:</strong>{" "}
+                      {settlement.population.toLocaleString()}
                     </p>
 
-                  )}
+                    <p>
+                      <strong>Travel time:</strong>{" "}
+                      {settlement.travelTime} min
+                    </p>
 
+                    {result && (
+                      <>
+                        <p>
+                          <strong>
+                            Nearest facility:
+                          </strong>{" "}
+                          {result.nearest_facility}
+                        </p>
+
+                        <p>
+                          <strong>
+                            Distance:
+                          </strong>{" "}
+                          {result.distance_km} km
+                        </p>
+
+                        <p className="font-semibold text-red-600">
+                          {result.accessibility_status}
+                        </p>
+                      </>
+                    )}
+                  </div>
                 </div>
-
               </Popup>
-
             </CircleMarker>
-
           );
-
         })}
-
       </MapContainer>
 
-
-      {/* ===================================================== */}
       {/* MAP LEGEND */}
-      {/* ===================================================== */}
-
-      <div className="absolute bottom-5 right-5 z-[1000] rounded-xl bg-white p-4 shadow-lg">
-
-        <h3 className="mb-3 text-sm font-bold text-slate-900">
-          Map Legend
-        </h3>
-
-
-        <div className="space-y-2 text-sm">
-
-
-          {/* Healthcare facility */}
-          <div className="flex items-center gap-2">
-
-            <span className="h-3 w-3 rounded-full bg-blue-500" />
-
-            <span className="text-slate-700">
-              Healthcare Facility
-            </span>
-
-          </div>
-
-
-          {/* Well served */}
-          <div className="flex items-center gap-2">
-
-            <span className="h-3 w-3 rounded-full bg-green-600" />
-
-            <span className="text-slate-700">
-              Well Served
-            </span>
-
-          </div>
-
-
-          {/* Moderate access */}
-          <div className="flex items-center gap-2">
-
-            <span className="h-3 w-3 rounded-full bg-amber-500" />
-
-            <span className="text-slate-700">
-              Moderate Access
-            </span>
-
-          </div>
-
-
-          {/* Underserved */}
-          <div className="flex items-center gap-2">
-
-            <span className="h-3 w-3 rounded-full bg-red-600" />
-
-            <span className="text-slate-700">
-              Underserved
-            </span>
-
-          </div>
-
-
+      <div className="absolute bottom-4 left-4 z-[1000] rounded-lg border border-slate-700 bg-[#030712]/90 px-3 py-2 shadow-xl backdrop-blur">
+        <div className="mb-2 text-[9px] font-bold uppercase tracking-widest text-slate-400">
+          Access Status
         </div>
 
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2 text-[10px] text-slate-300">
+            <span className="h-2.5 w-2.5 rounded-full bg-green-500" />
+            <span>≤ 30 min</span>
+          </div>
+
+          <div className="flex items-center gap-2 text-[10px] text-slate-300">
+            <span className="h-2.5 w-2.5 rounded-full bg-yellow-500" />
+            <span>31–60 min</span>
+          </div>
+
+          <div className="flex items-center gap-2 text-[10px] text-slate-300">
+            <span className="h-2.5 w-2.5 rounded-full bg-red-500" />
+            <span>&gt; 60 min</span>
+          </div>
+
+          <div className="flex items-center gap-2 text-[10px] text-slate-300">
+            <span className="h-2.5 w-2.5 rounded-full bg-cyan-400" />
+            <span>Healthcare facility</span>
+          </div>
+        </div>
       </div>
 
+      {/* MAP STATUS */}
+      <div className="absolute right-4 top-4 z-[1000] rounded-lg border border-slate-700 bg-[#030712]/90 px-3 py-2 backdrop-blur">
+        <div className="text-[9px] uppercase tracking-widest text-slate-500">
+          Showing
+        </div>
 
+        <div className="mt-0.5 text-xs font-semibold text-white">
+          {visibleSettlements.length} settlements
+        </div>
+      </div>
     </div>
   );
 }
