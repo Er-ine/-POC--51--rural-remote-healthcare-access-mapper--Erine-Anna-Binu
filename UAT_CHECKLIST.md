@@ -1,45 +1,63 @@
-# UAT Checklist
-
-## Project
+# UAT Checklist — Rural & Remote Healthcare Access Gap Mapper
 
 **POC ID:** POC-51
+**Project:** Rural & Remote Healthcare Access Gap Mapper
+**Author:** Erine Anna Binu
 
-**Title:** Rural & Remote Healthcare Access Gap Mapper
+UAT = User Acceptance Testing. Every item below must be manually verified against the running application (both frontend and backend live) before submission. Do not mark an item ✅ unless you have personally tested it.
 
----
+## Engineering
 
-## User Acceptance Testing
+- [ ] Application builds successfully (frontend: `npm run build` or `npm run dev`; backend: starts without errors)
+- [ ] No console errors in the browser dev tools
+- [ ] No errors in the backend terminal on startup or during use
+- [ ] Data loads correctly on initial page load
+- [ ] Filters (if any) work correctly and update the relevant views
+- [ ] All core functionality operates as expected end-to-end
 
-| Test Case | Expected Result | Status |
-|---|---|---|
-| Start backend | FastAPI starts successfully | PASS |
-| Health endpoint | Returns healthy service response | PASS |
-| Open API documentation | Swagger UI loads | PASS |
-| Run underserved-area analysis | Returns analysis JSON | PASS |
-| Start frontend | Next.js application loads | PASS |
-| Dashboard rendering | Dashboard displays correctly | PASS |
-| Map rendering | Interactive map loads | PASS |
-| Healthcare facilities | Facility markers appear | PASS |
-| Facility interaction | Facility popup displays information | PASS |
-| Settlement visualization | Settlement markers appear | PASS |
-| Settlement interaction | Settlement popup displays information | PASS |
-| Accessibility visualization | Accessibility status is visually represented | PASS |
-| Backend/frontend integration | Frontend receives backend analysis | PASS |
-| Production build | Frontend builds successfully | PASS |
+## Feature-by-Feature Verification
 
----
+- [ ] Travel-time isochrone map renders and responds to interaction
+- [ ] Access-gap choropleth renders with correct shading/legend
+- [ ] Facility-density vs. population scatter renders and is readable
+- [ ] Underserved-district ranking table populates and sorts correctly
+- [ ] Mobile-clinic route optimisation panel displays expected output
+- [ ] "Why this matters" panel displays correctly
+- [ ] "Who controls the rail" panel displays correctly
+- [ ] Data Status indicator correctly distinguishes real vs. synthetic data
+- [ ] Synthetic-data disclaimer is visible where synthetic data is shown
 
-## API Validation
+## Experience
 
-### Health Check
+- [ ] Strong, consistent visual identity across all views
+- [ ] Responsive layout — verified at desktop width
+- [ ] Responsive layout — verified at tablet width
+- [ ] Responsive layout — verified at mobile width
+- [ ] Clear interaction flow (a first-time user can navigate without instructions)
+- [ ] Dashboard tells a coherent story (not just a collection of disconnected widgets)
+- [ ] Professional presentation — no placeholder text, lorem ipsum, or broken images left in
 
-Endpoint:
+## Data Correctness Spot Checks
 
-`GET /health`
+- [ ] At least 2–3 districts spot-checked manually for correct access-gap scoring
+- [ ] Provenance tags spot-checked — confirmed real data is labeled real, synthetic data is labeled synthetic
+- [ ] Edge cases checked (e.g. a district with no facilities, a district with very high population density)
 
-Expected:
+## Architecture
 
-```json
-{
-  "status": "ok"
-}
+- [ ] Existing functionality preserved after any late-stage changes
+- [ ] AI Handshake protocol followed (Repomix output shared before AI-assisted implementation)
+- [ ] Clean repository structure (no stray/unused files, no commented-out dead code left in)
+- [ ] Repomix workflow followed throughout
+
+## Known Issues
+
+_(List anything found during UAT that was NOT fixed before submission, with a short explanation of why. It's expected and normal to have some — leaving this section honest is part of the protocol.)_
+
+-
+-
+
+## Sign-off
+
+- [ ] All unchecked items above are either resolved or explicitly logged in Known Issues
+- [ ] Ready for final submission and tagging @pallaviprasadt

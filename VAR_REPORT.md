@@ -1,89 +1,57 @@
-# VAR Report
-
-## Project
+# VAR Report — Rural & Remote Healthcare Access Gap Mapper
 
 **POC ID:** POC-51
+**Project:** Rural & Remote Healthcare Access Gap Mapper
+**Author:** Erine Anna Binu
+**Rail:** Health Equity
 
-**Title:** Rural & Remote Healthcare Access Gap Mapper
+VAR = Visual & Architecture Review. This document records the review conducted before implementation (and any follow-up review after implementation) against the Real Rails engineering protocol.
 
-## Purpose
+## 1. Scope Reviewed
 
-The VAR (Verify, Assess, Refine) process was used to validate the
-implementation against the intended healthcare accessibility mapping
-workflow.
+_(List what was reviewed — e.g. initial architecture proposal, Repomix output, wireframes/mockups, or the implemented application itself.)_
 
----
+## 2. Findings — Architecture
 
-## 1. VERIFY
+| Area | Finding | Action Taken |
+|---|---|---|
+| Scoring model | Configurable weight sliders were in the original spec but added unnecessary complexity/opacity | Switched to fixed, deterministic scoring |
+| API surface | Initial API design had more endpoints than needed for the required features | Reduced to the minimum set needed |
+| Data provenance | No way to distinguish real vs. synthetic data in the original design | Added explicit provenance fields in schemas + a Data Status indicator in the UI |
+| Data folder naming | `data/real` was misleading since some of it is reference data, not live data | Renamed to `data/reference` |
+| Routing | A full routing engine / VRP solver was considered for mobile-clinic optimisation | Descoped — out of scope for a POC; flagged as a future enhancement |
+| ML | Machine-learning-based scoring was considered | Descoped in favor of explainable, fixed scoring |
 
-### Backend Verification
+## 3. Findings — Visual / Experience
 
-- FastAPI backend starts successfully.
-- Health endpoint responds successfully.
-- Underserved-area analysis endpoint responds successfully.
-- API response contains settlement and healthcare accessibility data.
-- FastAPI Swagger documentation is accessible.
+_(Fill in after implementation — e.g. review against the required visual bar: cinematic experience, strong interaction model, dashboard storytelling, production-grade polish, clear visual identity, professional presentation.)_
 
-### Frontend Verification
+| Area | Finding | Action Taken |
+|---|---|---|
+| _(e.g. Map interaction)_ | | |
+| _(e.g. Data Status indicator visibility)_ | | |
+| _(e.g. Responsive layout)_ | | |
 
-- Next.js frontend starts successfully.
-- Dashboard renders successfully.
-- Interactive Leaflet map renders successfully.
-- Healthcare facility markers are displayed.
-- Rural settlement markers are displayed.
-- Settlement accessibility is visually represented.
+## 4. Required Features — Coverage Check
 
-### Build Verification
+| Feature | Status |
+|---|---|
+| Travel-time isochrone map | ☐ |
+| Access-gap choropleth | ☐ |
+| Facility-density vs. population scatter | ☐ |
+| Underserved-district ranking table | ☐ |
+| Mobile-clinic route optimisation panel | ☐ |
+| "Why this matters" panel | ☐ |
+| "Who controls the rail" panel | ☐ |
+| Synthetic-data disclaimer | ☐ |
+| Data Status indicator | ☐ |
 
-- Frontend production build completed successfully.
-- No blocking compilation errors were observed.
+_(Mark each ✅ once verified working in the running app, not just implemented.)_
 
----
+## 5. Outstanding Issues at Time of This Review
 
-## 2. ASSESS
+_(List anything not yet resolved — carry unresolved items into UAT_CHECKLIST.md as known issues.)_
 
-The following areas were assessed:
+## 6. Reviewer
 
-### Functionality
-
-- Healthcare facilities are represented on the map.
-- Rural settlements are represented on the map.
-- Nearest healthcare facilities are identified.
-- Geographic accessibility is analyzed.
-- Underserved areas are identified.
-
-### User Interface
-
-- Dashboard provides a clear visual hierarchy.
-- Map provides interactive geographic exploration.
-- Facility and settlement information is accessible through map
-  interactions.
-- Accessibility status is communicated visually.
-
-### Integration
-
-The frontend successfully communicates with the FastAPI backend
-and uses the resulting analysis for the healthcare accessibility
-visualization.
-
----
-
-## 3. REFINE
-
-During implementation, issues involving backend module structure,
-API execution and frontend/backend integration were identified and
-resolved.
-
-The application was re-tested after the fixes to confirm that the
-backend, API, frontend and interactive map continued to function
-correctly.
-
----
-
-## VAR Result
-
-**Status: PASS**
-
-The implemented proof-of-concept successfully demonstrates the
-intended healthcare accessibility-gap analysis workflow and provides
-an interactive visualization of rural and remote healthcare access.
+_(Self-reviewed using AI as a design/architecture review partner, per protocol. Final sign-off: @pallaviprasadt.)_
