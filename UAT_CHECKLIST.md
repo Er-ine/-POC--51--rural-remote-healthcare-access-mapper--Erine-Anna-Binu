@@ -8,47 +8,47 @@ UAT = User Acceptance Testing. Every item below must be manually verified agains
 
 ## Engineering
 
-- [ ] Application builds successfully (frontend: `npm run build` or `npm run dev`; backend: starts without errors)
-- [ ] No console errors in the browser dev tools
-- [ ] No errors in the backend terminal on startup or during use
-- [ ] Data loads correctly on initial page load
-- [ ] Filters (if any) work correctly and update the relevant views
-- [ ] All core functionality operates as expected end-to-end
+- [x] Application builds successfully (frontend: `npm run build` or `npm run dev`; backend: starts without errors)
+- [x] No console errors in the browser dev tools
+- [x] No errors in the backend terminal on startup or during use
+- [x] Data loads correctly on initial page load
+- [x] Filters (if any) work correctly and update the relevant views
+- [x] All core functionality operates as expected end-to-end
 
 ## Feature-by-Feature Verification
 
-- [ ] Travel-time isochrone map renders and responds to interaction
-- [ ] Access-gap choropleth renders with correct shading/legend
-- [ ] Facility-density vs. population scatter renders and is readable
+- [x] Travel-time isochrone map renders and responds to interaction
+- [x] Access-gap choropleth renders with correct shading/legend
+- [x] Facility-density vs. population scatter renders and is readable
 - [ ] Underserved-district ranking table populates and sorts correctly
 - [ ] Mobile-clinic route optimisation panel displays expected output
 - [ ] "Why this matters" panel displays correctly
-- [ ] "Who controls the rail" panel displays correctly
+- [x] "Who controls the rail" panel displays correctly
 - [ ] Data Status indicator correctly distinguishes real vs. synthetic data
 - [ ] Synthetic-data disclaimer is visible where synthetic data is shown
 
 ## Experience
 
-- [ ] Strong, consistent visual identity across all views
-- [ ] Responsive layout — verified at desktop width
-- [ ] Responsive layout — verified at tablet width
-- [ ] Responsive layout — verified at mobile width
-- [ ] Clear interaction flow (a first-time user can navigate without instructions)
-- [ ] Dashboard tells a coherent story (not just a collection of disconnected widgets)
-- [ ] Professional presentation — no placeholder text, lorem ipsum, or broken images left in
+- [x] Strong, consistent visual identity across all views
+- [x] Responsive layout — verified at desktop width
+- [x] Responsive layout — verified at tablet width
+- [x] Responsive layout — verified at mobile width
+- [x] Clear interaction flow (a first-time user can navigate without instructions)
+- [x] Dashboard tells a coherent story (not just a collection of disconnected widgets)
+- [x] Professional presentation — no placeholder text, lorem ipsum, or broken images left in
 
 ## Data Correctness Spot Checks
 
-- [ ] At least 2–3 districts spot-checked manually for correct access-gap scoring
-- [ ] Provenance tags spot-checked — confirmed real data is labeled real, synthetic data is labeled synthetic
-- [ ] Edge cases checked (e.g. a district with no facilities, a district with very high population density)
+- [x] At least 2–3 districts spot-checked manually for correct access-gap scoring
+- [] Provenance tags spot-checked — confirmed real data is labeled real, synthetic data is labeled synthetic
+- [x] Edge cases checked (e.g. a district with no facilities, a district with very high population density)
 
 ## Architecture
 
-- [ ] Existing functionality preserved after any late-stage changes
-- [ ] AI Handshake protocol followed (Repomix output shared before AI-assisted implementation)
-- [ ] Clean repository structure (no stray/unused files, no commented-out dead code left in)
-- [ ] Repomix workflow followed throughout
+- [x] Existing functionality preserved after any late-stage changes
+- [x] AI Handshake protocol followed (Repomix output shared before AI-assisted implementation)
+- [x] Clean repository structure (no stray/unused files, no commented-out dead code left in)
+- [x] Repomix workflow followed throughout
 
 ## Known Issues
 
@@ -60,3 +60,7 @@ _(List anything found during UAT that was NOT fixed before submission, with a sh
 ## Sign-off
 
 - [ ] All unchecked items above are either resolved or explicitly logged in Known Issues
+<<<<<<< HEAD
+=======
+- [ ] Ready for final submission and tagging @pallaviprasadt
+>>>>>>> 829bf95d0c3dd3e7a91ea1fa6452397b4a56a1e1
