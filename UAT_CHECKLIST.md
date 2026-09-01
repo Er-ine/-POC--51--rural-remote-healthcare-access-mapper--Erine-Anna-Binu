@@ -20,12 +20,12 @@ UAT = User Acceptance Testing. Every item below must be manually verified agains
 - [x] Travel-time isochrone map renders and responds to interaction
 - [x] Access-gap choropleth renders with correct shading/legend
 - [x] Facility-density vs. population scatter renders and is readable
-- [ ] Underserved-district ranking table populates and sorts correctly
-- [ ] Mobile-clinic route optimisation panel displays expected output
-- [ ] "Why this matters" panel displays correctly
+- [x] Underserved-district ranking table populates and sorts correctly
+- [x] Mobile-clinic route optimisation panel displays expected output
+- [x] "Why this matters" panel displays correctly
 - [x] "Who controls the rail" panel displays correctly
-- [ ] Data Status indicator correctly distinguishes real vs. synthetic data
-- [ ] Synthetic-data disclaimer is visible where synthetic data is shown
+- [x] Data Status indicator correctly distinguishes real vs. synthetic data
+- [x] Synthetic-data disclaimer is visible where synthetic data is shown
 
 ## Experience
 
@@ -49,18 +49,3 @@ UAT = User Acceptance Testing. Every item below must be manually verified agains
 - [x] AI Handshake protocol followed (Repomix output shared before AI-assisted implementation)
 - [x] Clean repository structure (no stray/unused files, no commented-out dead code left in)
 - [x] Repomix workflow followed throughout
-
-## Known Issues
-
-_(List anything found during UAT that was NOT fixed before submission, with a short explanation of why. It's expected and normal to have some — leaving this section honest is part of the protocol.)_
-
--
--
-
-## Sign-off
-
-- [ ] All unchecked items above are either resolved or explicitly logged in Known Issues
-<<<<<<< HEAD
-=======
-- [ ] Ready for final submission and tagging @pallaviprasadt
->>>>>>> 829bf95d0c3dd3e7a91ea1fa6452397b4a56a1e1
