@@ -6,7 +6,7 @@ class HealthcareFacility(BaseModel):
     id: int
     name: str
     type: Literal["Hospital", "Health Center", "Clinic"]
-    country: Literal["Oman", "Saudi Arabia"]
+    country: Literal["Oman", "Saudi Arabia", "UAE", "Qatar", "Bahrain", "Kuwait"]
     latitude: float
     longitude: float
     capacity: int
@@ -16,7 +16,7 @@ class HealthcareFacility(BaseModel):
 class Settlement(BaseModel):
     id: int
     name: str
-    country: Literal["Oman", "Saudi Arabia"]
+    country: Literal["Oman", "Saudi Arabia", "UAE", "Qatar", "Bahrain", "Kuwait"]
     latitude: float
     longitude: float
     population: int

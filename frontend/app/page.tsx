@@ -2,9 +2,15 @@
 
 import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-
+import WhoControlsTheRailPanel from "@/components/WhoControlsTheRailPanel";
+import FacilityDensityScatter from "@/components/FacilityDensityScatter";
 import IntelligenceSidebar from "@/components/IntelligenceSidebar";
 import AnalyticsStrip from "@/components/AnalyticsStrip";
+import RankingTable from "@/components/RankingTable";
+import MobileClinicPanel from "@/components/MobileClinicPanel";
+import WhyThisMattersPanel from "@/components/WhyThisMattersPanel";
+import DataStatusBadge from "@/components/DataStatusBadge";
+import SyntheticDataDisclaimer from "@/components/SyntheticDataDisclaimer";
 
 const HealthcareMap = dynamic(
   () => import("@/components/HealthcareMap"),
@@ -22,6 +28,13 @@ const HealthcareMap = dynamic(
     ),
   }
 );
+
+// ── DATA PROVENANCE CONFIG ────────────────────────────────────────────
+// TODO: set this based on your actual data source. If /api/analysis/
+// underserved-areas is backed by real facility/population records,
+// change to "real". Currently assumed "synthetic" since this is a POC.
+const DATA_SOURCE_STATUS: "real" | "synthetic" = "synthetic";
+// ───────────────────────────────────────────────────────────────────
 
 export type AccessibilityResult = {
   settlement_id: number;
@@ -41,14 +54,12 @@ type AnalysisResponse = {
   all_results: AccessibilityResult[];
 };
 
-type Country = "All" | "Oman" | "Saudi Arabia";
-
 export default function Home() {
   const [analysisData, setAnalysisData] =
     useState<AnalysisResponse | null>(null);
 
   const [selectedCountry, setSelectedCountry] =
-    useState<Country>("All");
+    useState<string>("All");
 
   const [selectedSettlement, setSelectedSettlement] =
     useState<AccessibilityResult | null>(null);
@@ -101,6 +112,14 @@ export default function Home() {
     };
   }, []);
 
+  // Derived dynamically from actual data — no hardcoded/fake countries
+  const availableCountries = useMemo(() => {
+    if (!analysisData) return [];
+    return Array.from(
+      new Set(analysisData.all_results.map((r) => r.country))
+    ).sort();
+  }, [analysisData]);
+
   const filteredResults = useMemo(() => {
     if (!analysisData) return [];
 
@@ -138,7 +157,7 @@ export default function Home() {
     );
   }, [filteredResults]);
 
-  const handleCountryChange = (country: Country) => {
+  const handleCountryChange = (country: string) => {
     setSelectedCountry(country);
 
     const firstMatch =
@@ -179,6 +198,8 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-3">
+            <DataStatusBadge status={DATA_SOURCE_STATUS} />
+
             <div className="hidden text-[10px] uppercase tracking-widest text-slate-600 md:block">
               LIVE DATA FEED
             </div>
@@ -194,6 +215,8 @@ export default function Home() {
       </header>
 
       <div className="mx-auto max-w-[1600px] px-4 py-5 lg:px-6">
+        {DATA_SOURCE_STATUS === "synthetic" && <SyntheticDataDisclaimer />}
+
         {/* TITLE / CONTROL ROW */}
         <div className="mb-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
@@ -208,7 +231,7 @@ export default function Home() {
             <p className="mt-1 max-w-3xl text-xs leading-5 text-slate-500">
               Identify healthcare accessibility gaps, affected
               populations and priority intervention areas across
-              Oman and Saudi Arabia.
+              covered regions.
             </p>
           </div>
 
@@ -221,17 +244,16 @@ export default function Home() {
             <select
               value={selectedCountry}
               onChange={(event) =>
-                handleCountryChange(
-                  event.target.value as Country
-                )
+                handleCountryChange(event.target.value)
               }
               className="rounded-lg border border-slate-700 bg-[#0b1120] px-4 py-2 text-xs font-semibold text-slate-200 outline-none transition focus:border-cyan-400"
             >
               <option value="All">All Countries</option>
-              <option value="Oman">Oman</option>
-              <option value="Saudi Arabia">
-                Saudi Arabia
-              </option>
+              {availableCountries.map((country) => (
+                <option key={country} value={country}>
+                  {country}
+                </option>
+              ))}
             </select>
           </div>
         </div>
@@ -327,6 +349,21 @@ export default function Home() {
                 py -m uvicorn app.main:app --reload
               </code>
             </div>
+          </div>
+        )}
+
+        {/* RANKING TABLE + MOBILE CLINIC PANEL */}
+        {!loading && !error && analysisData && (
+          <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(0,6fr)_minmax(280px,4fr)]">
+            <RankingTable results={filteredUnderserved} />
+            <MobileClinicPanel results={filteredUnderserved} />
+          </div>
+        )}
+
+        {/* WHY THIS MATTERS */}
+        {!loading && !error && analysisData && (
+          <div className="mt-3">
+            <WhyThisMattersPanel />
           </div>
         )}
 

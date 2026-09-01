@@ -60,4 +60,3 @@ _(List anything found during UAT that was NOT fixed before submission, with a sh
 ## Sign-off
 
 - [ ] All unchecked items above are either resolved or explicitly logged in Known Issues
-- [ ] Ready for final submission and tagging @pallaviprasadt

@@ -1,87 +1,87 @@
-# 🌍 Rural & Remote Healthcare Access Gap Mapper
+# Rural & Remote Healthcare Access Gap Mapper
 
-> **POC-51 | Healthcare Intelligence Platform**
+**PoC ID:** POC-51
+**Rail:** Health Equity
+**Author:** Erine Anna Binu
+**Program:** Real Rails — Batch 6
 
-A healthcare intelligence platform for mapping rural and remote healthcare
-access gaps across Gulf populations, with a focus on **Oman and Saudi Arabia**.
+## Overview
 
-The platform combines healthcare facility data, rural settlement data,
-geographic distance analysis, and interactive visualization to identify
-communities that may have limited access to healthcare facilities.
+A healthcare intelligence platform that maps healthcare access gaps facing rural and remote populations across Gulf countries (Oman and Saudi Arabia). Gulf health systems are largely urban-centric — this dashboard makes the access gap facing interior and rural populations concrete and mappable rather than anecdotal.
 
----
+## Features
 
-## 📌 Project Overview
+- **Travel-time isochrone map** — distance-based catchment rings around each facility (30/60/90-minute bands)
+- **Access-gap choropleth** — Voronoi-cell overlay shaded by travel time to nearest facility
+- **Population density overlay** — graduated circles sized by settlement population
+- **Facility-density vs. population scatter** — compares facility count against population by country
+- **Underserved-district ranking table** — sortable table of districts by access severity
+- **Mobile-clinic route panel** — suggested visitation order for the most underserved settlements
+- **"Why this matters" panel** — context on the real-world stakes of healthcare access gaps
+- **"Who controls the rail" panel** — key stakeholders responsible for rural health policy and infrastructure
+- **Data Status indicator** — flags whether displayed data is real or synthetic
+- **Synthetic-data disclaimer** — shown wherever synthetic data is displayed
 
-Access to healthcare can vary significantly between urban centres and
-rural or remote communities. Large geographic distances and limited
-healthcare infrastructure can make it difficult for populations in
-remote areas to reach appropriate medical services.
+## Tech Stack
 
-The **Rural & Remote Healthcare Access Gap Mapper** is a proof-of-concept
-system designed to visualize these accessibility gaps.
+| Layer | Technology |
+|---|---|
+| Frontend | Next.js, TypeScript, Tailwind CSS |
+| Mapping | Leaflet.js (react-leaflet), Turf.js |
+| Data Visualization | D3.js |
+| Backend | FastAPI (Python) |
+| Data Processing | Pandas |
 
-The platform maps:
+## Data Sources
 
-- 🏥 Healthcare facilities
-- 📍 Rural and remote settlements
-- 👥 Settlement populations
-- 📏 Distance to the nearest healthcare facility
-- 🚨 Underserved areas
-- 🌍 Country-level healthcare accessibility
+This PoC uses synthetic data modeled on the structure and scope of the following real-world sources:
 
-The result is an interactive dashboard that allows healthcare access
-gaps to be explored geographically.
+- **WHO health workforce rural retention guidance** — informs the access-gap severity thresholds
+- **OpenStreetMap / Overpass healthcare POIs** — reference structure for facility location data
+- **Oman National Spatial Data Infrastructure (NSDI)** — reference structure for Omani settlement/boundary data
+- **Saudi MOH rural health centre directory** — reference structure for Saudi facility data
 
----
+All settlement, facility, and travel-time figures in this build are **synthetic/sample data** generated for demonstration purposes and do not represent verified real-world records.
 
-# 🎯 Problem Statement
+## Getting Started
 
-Rural and remote populations may face significant barriers to accessing
-healthcare because of geographic isolation and limited healthcare
-infrastructure.
+### Backend
+```bash
+cd backend
+py -m uvicorn app.main:app --reload
+```
+Runs on `http://127.0.0.1:8000`.
 
-Traditional healthcare data systems often present facilities and
-population information separately, making it difficult to understand
-where the largest accessibility gaps exist.
+### Frontend
+```bash
+cd frontend
+npm install
+npm run dev
+```
+Runs on `http://localhost:3000`.
 
-There is therefore a need for a system that can:
+## Project Structure
+├── backend/
+│ └── app/ # FastAPI application
+├── frontend/
+│ ├── app/ # Next.js pages
+│ ├── components/ # UI components (map, panels, tables)
+│ └── lib/ # Mock data
+├── docs/ # Submission documentation
+├── README.md
+├── ARCHITECTURE.md
+├── AI_USAGE.md
+├── VAR_REPORT.md
+└── UAT_CHECKLIST.md
 
-1. Map healthcare facilities geographically.
-2. Map rural and remote settlements.
-3. Identify the nearest healthcare facility for each settlement.
-4. Calculate geographic accessibility.
-5. Identify underserved communities.
-6. Present the results through an intuitive visual dashboard.
 
----
+## Known Limitations
 
-# 💡 Proposed Solution
+- Isochrone bands are distance-based approximations, not real road-network routing (no routing engine available for this PoC)
+- Choropleth uses Voronoi cells as a stand-in for real administrative district boundaries
+- Facility-density scatter is aggregated at country level (mock data has no sub-district field)
+- Mobile-clinic routing uses a simple farthest-first heuristic, not a real optimization/VRP solver
 
-The proposed platform connects healthcare facility information with
-settlement-level geographic data.
+## Submission Documentation
 
-For each settlement, the backend analyzes nearby healthcare facilities
-and determines the closest available facility.
-
-The resulting accessibility information is then displayed through an
-interactive map and dashboard.
-
-### Core workflow
-
-```text
-Healthcare Facilities
-        +
-Rural Settlements
-        ↓
-Geographic Analysis
-        ↓
-Nearest Facility Identification
-        ↓
-Distance Calculation
-        ↓
-Accessibility Classification
-        ↓
-Underserved Area Detection
-        ↓
-Interactive Dashboard
+See `ARCHITECTURE.md`, `AI_USAGE.md`, `VAR_REPORT.md`, and `UAT_CHECKLIST.md` for full engineering review, AI usage disclosure, and testing records.
