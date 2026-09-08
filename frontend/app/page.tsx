@@ -32,8 +32,6 @@ const HealthcareMap = dynamic(
 // ── DATA PROVENANCE CONFIG ────────────────────────────────────────────
 // TODO: set this based on your actual data source. If /api/analysis/
 // underserved-areas is backed by real facility/population records,
-// change to "real". Currently assumed "synthetic" since this is a POC.
-const DATA_SOURCE_STATUS: "real" | "synthetic" = "synthetic";
 // ───────────────────────────────────────────────────────────────────
 
 export type AccessibilityResult = {
@@ -198,7 +196,7 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-3">
-            <DataStatusBadge status={DATA_SOURCE_STATUS} />
+            <DataStatusBadge />
 
             <div className="hidden text-[10px] uppercase tracking-widest text-slate-600 md:block">
               LIVE DATA FEED
@@ -215,7 +213,7 @@ export default function Home() {
       </header>
 
       <div className="mx-auto max-w-[1600px] px-4 py-5 lg:px-6">
-        {DATA_SOURCE_STATUS === "synthetic" && <SyntheticDataDisclaimer />}
+        <SyntheticDataDisclaimer />
 
         {/* TITLE / CONTROL ROW */}
         <div className="mb-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
