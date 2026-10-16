@@ -24,7 +24,7 @@ import {
   settlements,
 } from "@/lib/mockData";
 
-type AccessibilityResult = {
+export type AccessibilityResult = {
   settlement_id: number;
   settlement_name: string;
   country: string;
@@ -38,12 +38,12 @@ type Props = {
   analysisResults: AccessibilityResult[];
   selectedCountry: string;
   selectedSettlement: AccessibilityResult | null;
-  onSettlementSelect: (
-    settlement: AccessibilityResult
-  ) => void;
+  onSettlementSelect: (settlement: AccessibilityResult) => void;
+  panelOpen?: boolean;
 };
 
-delete (L.Icon.Default.prototype as any)._getIconUrl;
+// Fix Leaflet's default icon path issues in Next.js without using 'any'
+delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
 
 L.Icon.Default.mergeOptions({
   iconRetinaUrl:
@@ -57,31 +57,37 @@ L.Icon.Default.mergeOptions({
 const ISOCHRONE_BANDS = [
   { minutes: 90, radiusKm: 60, color: "#ef4444", fillOpacity: 0.05 },
   { minutes: 60, radiusKm: 40, color: "#f59e0b", fillOpacity: 0.08 },
-  { minutes: 30, radiusKm: 20, color: "#22c55e", fillOpacity: 0.14 },
+  { minutes: 30, radiusKm: 20, color: "#2dd4bf", fillOpacity: 0.12 },
 ];
 
 function MapController({
   selectedSettlement,
+  panelOpen,
 }: {
   selectedSettlement: AccessibilityResult | null;
+  panelOpen?: boolean;
 }) {
   const map = useMap();
+
+  // Invalidate map size when slide-over panel opens or closes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      map.invalidateSize();
+    }, 320);
+    return () => clearTimeout(timer);
+  }, [panelOpen, map]);
 
   useEffect(() => {
     if (!selectedSettlement) return;
 
     map.flyTo(
       [
-        selectedSettlementLatitude(
-          selectedSettlement.settlement_id
-        ),
-        selectedSettlementLongitude(
-          selectedSettlement.settlement_id
-        ),
+        selectedSettlementLatitude(selectedSettlement.settlement_id),
+        selectedSettlementLongitude(selectedSettlement.settlement_id),
       ],
       Math.max(map.getZoom(), 6),
       {
-        duration: 0.45,
+        duration: 0.5,
       }
     );
   }, [selectedSettlement, map]);
@@ -90,18 +96,12 @@ function MapController({
 }
 
 function selectedSettlementLatitude(id: number) {
-  const settlement = settlements.find(
-    (item) => item.id === id
-  );
-
+  const settlement = settlements.find((item) => item.id === id);
   return settlement?.lat ?? 23.5;
 }
 
 function selectedSettlementLongitude(id: number) {
-  const settlement = settlements.find(
-    (item) => item.id === id
-  );
-
+  const settlement = settlements.find((item) => item.id === id);
   return settlement?.lng ?? 50;
 }
 
@@ -110,37 +110,44 @@ export default function HealthcareMap({
   selectedCountry,
   selectedSettlement,
   onSettlementSelect,
+  panelOpen = false,
 }: Props) {
   const [showIsochrones, setShowIsochrones] = useState(true);
   const [showChoropleth, setShowChoropleth] = useState(false);
-  const [showPopulationDensity, setShowPopulationDensity] =
-    useState(false);
+  const [showPopulationDensity, setShowPopulationDensity] = useState(false);
 
   const visibleSettlements = useMemo(() => {
     return settlements.filter(
       (settlement) =>
-        selectedCountry === "All" ||
-        settlement.country === selectedCountry
+        selectedCountry === "All" || settlement.country === selectedCountry
     );
   }, [selectedCountry]);
 
   const visibleFacilities = useMemo(() => {
     return healthcareFacilities.filter(
       (facility) =>
-        selectedCountry === "All" ||
-        facility.country === selectedCountry
+        selectedCountry === "All" || facility.country === selectedCountry
     );
   }, [selectedCountry]);
 
   const resultMap = useMemo(() => {
     const map = new Map<number, AccessibilityResult>();
-
     analysisResults.forEach((result) => {
       map.set(result.settlement_id, result);
     });
-
     return map;
   }, [analysisResults]);
+
+  // Cinematic custom facility icon with teal glow and medical cross
+  const facilityIcon = useMemo(() => {
+    return L.divIcon({
+      className: "custom-facility-pin",
+      html: `<div style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:6px;background:#06161a;border:1.5px solid #2dd4bf;box-shadow:0 0 10px rgba(45,212,191,0.7);color:#2dd4bf;font-weight:bold;font-size:12px;">✚</div>`,
+      iconSize: [24, 24],
+      iconAnchor: [12, 12],
+      popupAnchor: [0, -14],
+    });
+  }, []);
 
   const isochroneRings = useMemo(() => {
     return visibleFacilities.flatMap((facility) =>
@@ -167,29 +174,24 @@ export default function HealthcareMap({
     );
   }, [visibleFacilities]);
 
-  // ── ACCESS-GAP CHOROPLETH (D3 Voronoi over settlements) ────────
-  // Now also returns maxTravel + the color scale itself so the
-  // legend can render the exact same scale used for the cells.
+  // ACCESS-GAP CHOROPLETH (D3 Voronoi over settlements)
   const { cells: choroplethCells, maxTravel: choroplethMaxTravel } =
     useMemo(() => {
       if (visibleSettlements.length < 3) {
         return { cells: [], maxTravel: 0 };
       }
 
-      const points: [number, number][] = visibleSettlements.map(
-        (s) => [s.lng, s.lat]
-      );
+      const points: [number, number][] = visibleSettlements.map((s) => [
+        s.lng,
+        s.lat,
+      ]);
 
       const delaunay = d3.Delaunay.from(points);
-
-      const bounds: [number, number, number, number] = [
-        34, 12, 62, 32,
-      ];
-
+      const bounds: [number, number, number, number] = [34, 12, 62, 32];
       const voronoi = delaunay.voronoi(bounds);
 
       const maxTravel =
-        d3.max(visibleSettlements, (s) => s.travelTime) ?? 90;
+        d3.max(visibleSettlements, (s: { travelTime: number }) => s.travelTime) ?? 90;
 
       const colorScale = d3
         .scaleLinear<string>()
@@ -202,7 +204,7 @@ export default function HealthcareMap({
           if (!cellPolygon) return null;
 
           const latlngs = cellPolygon.map(
-            ([lng, lat]) => [lat, lng] as [number, number]
+            ([lng, lat]: [number, number]) => [lat, lng] as [number, number]
           );
 
           return {
@@ -230,7 +232,7 @@ export default function HealthcareMap({
 
   const populationCircles = useMemo(() => {
     const maxPop =
-      d3.max(visibleSettlements, (s) => s.population) ?? 1;
+      d3.max(visibleSettlements, (s: { population: number }) => s.population) ?? 1;
 
     const radiusScale = d3
       .scaleSqrt()
@@ -252,18 +254,21 @@ export default function HealthcareMap({
         center={[23.5, 50]}
         zoom={5}
         minZoom={4}
-        maxZoom={10}
+        maxZoom={12}
         scrollWheelZoom={true}
         preferCanvas={true}
         className="h-full w-full"
       >
+        {/* Esri World Dark Gray Canvas: reliable, dark, professional, and free without API keys */}
         <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?key=cb1_31wn_1_168dff2e973283f9b204ba7d"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+          url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"
+          attribution='Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ, OpenStreetMap contributors'
+          maxZoom={16}
         />
 
         <MapController
           selectedSettlement={selectedSettlement}
+          panelOpen={panelOpen}
         />
 
         {showChoropleth &&
@@ -279,8 +284,7 @@ export default function HealthcareMap({
               }}
             >
               <Tooltip sticky>
-                {cell.name}: {cell.travelTime} min to nearest
-                facility
+                {cell.name}: {cell.travelTime} min to nearest facility
               </Tooltip>
             </Polygon>
           ))}
@@ -292,15 +296,14 @@ export default function HealthcareMap({
               center={circle.center}
               radius={circle.radius}
               pathOptions={{
-                color: "#a78bfa",
+                color: "#2dd4bf",
                 weight: 1,
-                fillColor: "#a78bfa",
+                fillColor: "#2dd4bf",
                 fillOpacity: 0.15,
               }}
             >
               <Tooltip sticky>
-                {circle.name}: {circle.population.toLocaleString()}{" "}
-                people
+                {circle.name}: {circle.population.toLocaleString()} residents (Synthetic)
               </Tooltip>
             </Circle>
           ))}
@@ -328,22 +331,26 @@ export default function HealthcareMap({
           <Marker
             key={`facility-${facility.id}`}
             position={[facility.lat, facility.lng]}
+            icon={facilityIcon}
           >
             <Popup>
               <div className="min-w-[190px]">
-                <h3 className="font-bold">{facility.name}</h3>
-                <div className="mt-2 space-y-1 text-sm">
+                <div className="flex items-center gap-1.5 border-b border-[rgba(45,212,191,0.2)] pb-1.5">
+                  <span className="h-2 w-2 rounded-full bg-[#2dd4bf]" />
+                  <h3 className="font-bold text-white">{facility.name}</h3>
+                </div>
+                <div className="mt-2 space-y-1 text-xs text-[#94a3b8]">
                   <p>
-                    <strong>Type:</strong> {facility.type}
+                    <strong className="text-[#f0fdfa]">Type:</strong> {facility.type}
                   </p>
                   <p>
-                    <strong>Country:</strong> {facility.country}
+                    <strong className="text-[#f0fdfa]">Country:</strong> {facility.country}
                   </p>
                   <p>
-                    <strong>Capacity:</strong> {facility.capacity}
+                    <strong className="text-[#f0fdfa]">Capacity:</strong> {facility.capacity} beds <span className="text-[10px] text-[#64748b]">(Synthetic)</span>
                   </p>
                   <p>
-                    <strong>Specialties:</strong>{" "}
+                    <strong className="text-[#f0fdfa]">Specialties:</strong>{" "}
                     {facility.specialties.join(", ")}
                   </p>
                 </div>
@@ -362,7 +369,7 @@ export default function HealthcareMap({
               ? "#ef4444"
               : travelTime > 30
                 ? "#f59e0b"
-                : "#22c55e";
+                : "#2dd4bf";
 
           return (
             <CircleMarker
@@ -385,30 +392,37 @@ export default function HealthcareMap({
             >
               <Popup>
                 <div className="min-w-[210px]">
-                  <h3 className="font-bold">{settlement.name}</h3>
-                  <p className="text-xs text-slate-500">
-                    {settlement.country}
-                  </p>
-                  <div className="mt-2 space-y-1 text-sm">
+                  <div className="flex items-center justify-between border-b border-[rgba(45,212,191,0.2)] pb-1.5">
+                    <h3 className="font-bold text-white">{settlement.name}</h3>
+                    <span className="text-[10px] text-[#94a3b8]">{settlement.country}</span>
+                  </div>
+                  <div className="mt-2 space-y-1 text-xs text-[#94a3b8]">
                     <p>
-                      <strong>Population:</strong>{" "}
-                      {settlement.population.toLocaleString()}
+                      <strong className="text-[#f0fdfa]">Population:</strong>{" "}
+                      {settlement.population.toLocaleString()}{" "}
+                      <span className="text-[10px] text-[#64748b]">(Synthetic)</span>
                     </p>
                     <p>
-                      <strong>Travel time:</strong>{" "}
+                      <strong className="text-[#f0fdfa]">Travel time:</strong>{" "}
                       {settlement.travelTime} min
                     </p>
                     {result && (
                       <>
                         <p>
-                          <strong>Nearest facility:</strong>{" "}
+                          <strong className="text-[#f0fdfa]">Nearest facility:</strong>{" "}
                           {result.nearest_facility}
                         </p>
                         <p>
-                          <strong>Distance:</strong>{" "}
-                          {result.distance_km} km
+                          <strong className="text-[#f0fdfa]">Distance:</strong>{" "}
+                          <span className="font-semibold text-white">{result.distance_km} km</span>
                         </p>
-                        <p className="font-semibold text-red-600">
+                        <p className={`font-semibold ${
+                          result.accessibility_status === "Underserved"
+                            ? "text-red-400"
+                            : result.accessibility_status === "Moderate Access"
+                              ? "text-amber-400"
+                              : "text-[#2dd4bf]"
+                        }`}>
                           {result.accessibility_status}
                         </p>
                       </>
@@ -421,87 +435,91 @@ export default function HealthcareMap({
         })}
       </MapContainer>
 
-      {/* LAYER TOGGLES */}
-      <div className="absolute left-4 top-4 z-[1000] rounded-lg border border-slate-700 bg-[#030712]/90 px-3 py-2 shadow-xl backdrop-blur">
-        <div className="mb-2 text-[9px] font-bold uppercase tracking-widest text-slate-400">
-          Layers
+      {/* LAYER TOGGLES (Floating HUD Top-Left) */}
+      <div className="absolute left-3 top-3 z-[1000] rounded-xl border border-[rgba(45,212,191,0.2)] bg-[#0a1f24]/90 p-2.5 shadow-2xl backdrop-blur-md sm:left-4 sm:top-4 sm:p-3">
+        <div className="mb-1.5 flex items-center gap-1.5 border-b border-[rgba(45,212,191,0.15)] pb-1">
+          <span className="h-1.5 w-1.5 rounded-full bg-[#2dd4bf]" />
+          <span className="text-[9px] font-bold uppercase tracking-widest text-[#2dd4bf]">
+            Map Overlays
+          </span>
         </div>
 
-        <label className="mb-1.5 flex items-center gap-2 text-[10px] text-slate-300">
-          <input
-            type="checkbox"
-            checked={showIsochrones}
-            onChange={(e) => setShowIsochrones(e.target.checked)}
-            className="h-3 w-3 accent-cyan-400"
-          />
-          Isochrone bands
-        </label>
+        <div className="space-y-1">
+          <label className="flex cursor-pointer items-center gap-2 text-[10px] text-[#f0fdfa] transition hover:text-[#2dd4bf] sm:text-[11px]">
+            <input
+              type="checkbox"
+              checked={showIsochrones}
+              onChange={(e) => setShowIsochrones(e.target.checked)}
+              className="h-3 w-3 accent-[#2dd4bf]"
+            />
+            <span>Isochrone bands</span>
+          </label>
 
-        <label className="mb-1.5 flex items-center gap-2 text-[10px] text-slate-300">
-          <input
-            type="checkbox"
-            checked={showChoropleth}
-            onChange={(e) => setShowChoropleth(e.target.checked)}
-            className="h-3 w-3 accent-cyan-400"
-          />
-          Access-gap choropleth
-        </label>
+          <label className="flex cursor-pointer items-center gap-2 text-[10px] text-[#f0fdfa] transition hover:text-[#2dd4bf] sm:text-[11px]">
+            <input
+              type="checkbox"
+              checked={showChoropleth}
+              onChange={(e) => setShowChoropleth(e.target.checked)}
+              className="h-3 w-3 accent-[#2dd4bf]"
+            />
+            <span>Access-gap Voronoi</span>
+          </label>
 
-        <label className="flex items-center gap-2 text-[10px] text-slate-300">
-          <input
-            type="checkbox"
-            checked={showPopulationDensity}
-            onChange={(e) =>
-              setShowPopulationDensity(e.target.checked)
-            }
-            className="h-3 w-3 accent-violet-400"
-          />
-          Population density
-        </label>
+          <label className="flex cursor-pointer items-center gap-2 text-[10px] text-[#f0fdfa] transition hover:text-[#2dd4bf] sm:text-[11px]">
+            <input
+              type="checkbox"
+              checked={showPopulationDensity}
+              onChange={(e) => setShowPopulationDensity(e.target.checked)}
+              className="h-3 w-3 accent-[#2dd4bf]"
+            />
+            <span>Population circles</span>
+          </label>
+        </div>
       </div>
 
-      {/* SETTLEMENT DOT LEGEND */}
-      <div className="absolute bottom-4 left-4 z-[1000] rounded-lg border border-slate-700 bg-[#030712]/90 px-3 py-2 shadow-xl backdrop-blur">
-        <div className="mb-2 text-[9px] font-bold uppercase tracking-widest text-slate-400">
-          Access Status
+      {/* SETTLEMENT STATUS LEGEND (Floating HUD Bottom-Left) */}
+      <div className="hidden sm:block absolute bottom-14 left-4 z-[1000] rounded-xl border border-[rgba(45,212,191,0.2)] bg-[#0a1f24]/90 p-3 shadow-2xl backdrop-blur-md">
+        <div className="mb-2 text-[9px] font-bold uppercase tracking-widest text-[#94a3b8]">
+          Catchment Legend
         </div>
 
         <div className="space-y-1.5">
-          <div className="flex items-center gap-2 text-[10px] text-slate-300">
-            <span className="h-2.5 w-2.5 rounded-full bg-green-500" />
-            <span>≤ 30 min</span>
+          <div className="flex items-center gap-2 text-[10px] text-[#f0fdfa]">
+            <span className="h-2.5 w-2.5 rounded-full bg-[#2dd4bf]" />
+            <span>&le; 30 min (Well Served)</span>
           </div>
-          <div className="flex items-center gap-2 text-[10px] text-slate-300">
-            <span className="h-2.5 w-2.5 rounded-full bg-yellow-500" />
-            <span>31–60 min</span>
+          <div className="flex items-center gap-2 text-[10px] text-[#f0fdfa]">
+            <span className="h-2.5 w-2.5 rounded-full bg-[#f59e0b]" />
+            <span>31–60 min (Moderate)</span>
           </div>
-          <div className="flex items-center gap-2 text-[10px] text-slate-300">
-            <span className="h-2.5 w-2.5 rounded-full bg-red-500" />
-            <span>&gt; 60 min</span>
+          <div className="flex items-center gap-2 text-[10px] text-[#f0fdfa]">
+            <span className="h-2.5 w-2.5 rounded-full bg-[#ef4444]" />
+            <span>&gt; 60 min (Underserved)</span>
           </div>
-          <div className="flex items-center gap-2 text-[10px] text-slate-300">
-            <span className="h-2.5 w-2.5 rounded-full bg-cyan-400" />
-            <span>Healthcare facility</span>
+          <div className="flex items-center gap-2 text-[10px] text-[#f0fdfa]">
+            <span className="flex h-3 w-3 items-center justify-center rounded-sm bg-[#06161a] border border-[#2dd4bf] text-[9px] font-bold text-[#2dd4bf]">
+              ✚
+            </span>
+            <span>Healthcare Facility</span>
           </div>
         </div>
       </div>
 
-      {/* CHOROPLETH GRADIENT LEGEND — only shown when that layer is on */}
+      {/* CHOROPLETH GRADIENT LEGEND */}
       {showChoropleth && (
-        <div className="absolute bottom-4 left-[172px] z-[1000] rounded-lg border border-slate-700 bg-[#030712]/90 px-3 py-2 shadow-xl backdrop-blur">
-          <div className="mb-2 text-[9px] font-bold uppercase tracking-widest text-slate-400">
+        <div className="hidden sm:block absolute bottom-14 left-[185px] z-[1000] rounded-xl border border-[rgba(45,212,191,0.2)] bg-[#0a1f24]/90 p-3 shadow-2xl backdrop-blur-md">
+          <div className="mb-2 text-[9px] font-bold uppercase tracking-widest text-[#94a3b8]">
             Access Gap (Travel Time)
           </div>
 
           <div
-            className="h-2.5 w-32 rounded"
+            className="h-2 w-32 rounded-full"
             style={{
-              background:
-                "linear-gradient(to right, #065f46, #b45309, #7f1d1d)",
+              background: "linear-gradient(to right, #065f46, #b45309, #7f1d1d)",
             }}
           />
 
-          <div className="mt-1 flex w-32 justify-between text-[9px] text-slate-400">
+          <div className="mt-1 flex w-32 justify-between text-[9px] text-[#94a3b8]">
             <span>0 min</span>
             <span>{Math.round(choroplethMaxTravel / 2)} min</span>
             <span>{choroplethMaxTravel} min</span>
@@ -509,13 +527,17 @@ export default function HealthcareMap({
         </div>
       )}
 
-      {/* MAP STATUS */}
-      <div className="absolute right-4 top-4 z-[1000] rounded-lg border border-slate-700 bg-[#030712]/90 px-3 py-2 backdrop-blur">
-        <div className="text-[9px] uppercase tracking-widest text-slate-500">
-          Showing
+      {/* MAP STATUS INDICATOR */}
+      <div
+        className={`hidden md:block absolute top-4 z-[1000] rounded-xl border border-[rgba(45,212,191,0.2)] bg-[#0a1f24]/90 px-3 py-2 shadow-2xl backdrop-blur-md transition-all duration-300 ${
+          panelOpen ? "right-[456px]" : "right-4"
+        }`}
+      >
+        <div className="text-[9px] uppercase tracking-widest text-[#64748b]">
+          Active Canvas
         </div>
-        <div className="mt-0.5 text-xs font-semibold text-white">
-          {visibleSettlements.length} settlements
+        <div className="mt-0.5 text-xs font-semibold text-[#f0fdfa]">
+          {visibleSettlements.length} settlements · {visibleFacilities.length} facilities
         </div>
       </div>
     </div>
