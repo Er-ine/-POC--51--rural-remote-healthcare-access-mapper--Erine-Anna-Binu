@@ -67,20 +67,21 @@ export default function Home() {
     async function fetchAnalysis() {
       try {
         const apiBase =
-          process.env.NEXT_PUBLIC_API_URL ||
-          "https://poc-51-rural-remote-healthcare-access.onrender.com";
-        const response = await fetch(
-          `${apiBase}/api/analysis/underserved-areas`,
-          {
-            cache: "no-store",
-          }
-        );
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://poc-51-rural-remote-healthcare-access.onrender.com";
 
-        if (!response.ok) {
-          throw new Error("Analysis service returned non-200 status");
-        }
+const response = await fetch(
+  `${apiBase}/api/analysis/underserved-areas`,
+  { cache: "no-store" }
+);
 
-        const data: AnalysisResponse = await response.json();
+if (!response.ok) {
+  throw new Error(
+    `Analysis service returned status ${response.status}`
+  );
+}
+
+const data: AnalysisResponse = await response.json();
 
         if (!cancelled) {
           setAnalysisData(data);
