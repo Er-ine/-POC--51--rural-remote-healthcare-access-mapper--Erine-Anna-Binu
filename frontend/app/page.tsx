@@ -81,7 +81,7 @@ export default function Home() {
     async function fetchAnalysis() {
       try {
         const response = await fetch(
-          `${API_BASE_URL}/api/analysis/underserved-areas`,
+          API_BASE_URL + "/api/analysis/underserved-areas",
           {
             method: "GET",
             cache: "no-store",
