@@ -1,3 +1,4 @@
+```tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -13,6 +14,10 @@ import DataStatusBadge from "@/components/DataStatusBadge";
 import SyntheticDataDisclaimer from "@/components/SyntheticDataDisclaimer";
 import ProjectInfoModal from "@/components/ProjectInfoModal";
 
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://poc-51-rural-remote-healthcare-access.onrender.com";
+
 const HealthcareMap = dynamic(() => import("@/components/HealthcareMap"), {
   ssr: false,
   loading: () => (
@@ -20,7 +25,7 @@ const HealthcareMap = dynamic(() => import("@/components/HealthcareMap"), {
       <div className="text-center">
         <div className="mx-auto mb-3 h-9 w-9 animate-spin rounded-full border-2 border-[rgba(45,212,191,0.2)] border-t-[#2dd4bf]" />
         <p className="text-xs font-medium tracking-wide text-[#94a3b8]">
-          Initializing geospatial canvas & telemetry...
+          Initializing geospatial canvas &amp; telemetry...
         </p>
       </div>
     </div>
@@ -48,8 +53,11 @@ type AnalysisResponse = {
 type AnalyticsTab = "metrics" | "ranking" | "scatter" | "clinic" | "policy";
 
 export default function Home() {
-  const [analysisData, setAnalysisData] = useState<AnalysisResponse | null>(null);
+  const [analysisData, setAnalysisData] =
+    useState<AnalysisResponse | null>(null);
+
   const [selectedCountry, setSelectedCountry] = useState<string>("All");
+
   const [selectedSettlement, setSelectedSettlement] =
     useState<AccessibilityResult | null>(null);
 
@@ -61,35 +69,34 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
+  // Fetch analysis results from the deployed FastAPI backend.
   useEffect(() => {
     let cancelled = false;
 
     async function fetchAnalysis() {
       try {
-        const apiBase =
-          process.env.NEXT_PUBLIC_API_URL ||
-          "https://poc-51-rural-remote-healthcare-access.onrender.com";
-
         const response = await fetch(
-          `${apiBase}/api/analysis/underserved-areas`,
+          `${API_BASE_URL}/api/analysis/underserved-areas`,
           {
             cache: "no-store",
           }
         );
 
         if (!response.ok) {
-          throw new Error("Analysis service returned non-200 status");
+          throw new Error(
+            `Analysis service returned status ${response.status}`
+          );
         }
 
         const data: AnalysisResponse = await response.json();
 
         if (!cancelled) {
           setAnalysisData(data);
-          // Note: Automatic selection of first settlement removed per prompt requirements
-          // Intelligence panel starts closed by default.
+          setError(false);
         }
       } catch (err) {
         console.error("Accessibility API request error:", err);
+
         if (!cancelled) {
           setError(true);
         }
@@ -107,7 +114,7 @@ export default function Home() {
     };
   }, []);
 
-  // Keyboard shortcut listener for global escape key
+  // Global Escape key handler for open panels and modal.
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -122,22 +129,29 @@ export default function Home() {
     };
 
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
   }, [isInfoModalOpen, isIntelligenceOpen, isAnalyticsOpen]);
 
-  // Derived available countries from actual backend response
+  // Derive available countries from the backend response.
   const availableCountries = useMemo(() => {
     if (!analysisData) return [];
+
     return Array.from(
-      new Set(analysisData.all_results.map((r) => r.country))
+      new Set(analysisData.all_results.map((result) => result.country))
     ).sort();
   }, [analysisData]);
 
+  // Apply the selected country filter.
   const filteredResults = useMemo(() => {
     if (!analysisData) return [];
+
     if (selectedCountry === "All") {
       return analysisData.all_results;
     }
+
     return analysisData.all_results.filter(
       (result) => result.country === selectedCountry
     );
@@ -150,20 +164,27 @@ export default function Home() {
   }, [filteredResults]);
 
   const totalPopulation = useMemo(() => {
-    return filteredResults.reduce((sum, result) => sum + result.population, 0);
+    return filteredResults.reduce(
+      (sum, result) => sum + result.population,
+      0
+    );
   }, [filteredResults]);
 
   const averageDistance = useMemo(() => {
-    if (!filteredResults.length) return 0;
+    if (filteredResults.length === 0) return 0;
+
     return (
-      filteredResults.reduce((sum, result) => sum + result.distance_km, 0) /
-      filteredResults.length
+      filteredResults.reduce(
+        (sum, result) => sum + result.distance_km,
+        0
+      ) / filteredResults.length
     );
   }, [filteredResults]);
 
   const handleCountryChange = (country: string) => {
     setSelectedCountry(country);
-    // If selected settlement does not belong to new country filter, clear it
+
+    // Clear a selected settlement if it falls outside the new filter.
     if (
       selectedSettlement &&
       country !== "All" &&
@@ -180,9 +201,9 @@ export default function Home() {
 
   return (
     <div className="relative flex h-screen w-screen flex-col overflow-hidden bg-[#06161a] text-[#f0fdfa]">
-      {/* ── CINEMATIC HEADER ──────────────────────────────────────────────── */}
+      {/* Cinematic header */}
       <header className="relative z-40 flex h-14 flex-shrink-0 items-center justify-between border-b border-[rgba(45,212,191,0.18)] bg-[#0a1f24]/95 px-4 backdrop-blur-md lg:px-6">
-        {/* Brand & Project Identity */}
+        {/* Brand and project identity */}
         <div className="flex items-center gap-3">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-[rgba(45,212,191,0.3)] bg-[rgba(45,212,191,0.1)] shadow-[0_0_12px_rgba(45,212,191,0.25)]">
             <span className="text-sm font-bold text-[#2dd4bf]">✚</span>
@@ -193,22 +214,28 @@ export default function Home() {
               <span className="hidden text-[10px] font-bold uppercase tracking-widest text-[#2dd4bf] sm:inline">
                 Healthcare Access Intelligence
               </span>
-              <span className="hidden rounded bg-[#0e2a30] px-1.5 py-0.2 text-[9px] text-[#94a3b8] sm:inline">
+
+              <span className="hidden rounded bg-[#0e2a30] px-1.5 py-0.5 text-[9px] text-[#94a3b8] sm:inline">
                 POC-51
               </span>
             </div>
+
             <h1 className="text-xs font-bold tracking-tight text-white sm:text-sm">
               <span className="hidden md:inline">
-                Infocreon Internship — Rural & Remote Healthcare Access Gap Mapper
+                Infocreon Internship — Rural &amp; Remote Healthcare Access
+                Gap Mapper
               </span>
-              <span className="md:hidden">Healthcare Access Gap Mapper</span>
+
+              <span className="md:hidden">
+                Healthcare Access Gap Mapper
+              </span>
             </h1>
           </div>
         </div>
 
-        {/* Right Controls */}
+        {/* Header controls */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Country Filter */}
+          {/* Country filter */}
           <div className="flex items-center gap-1.5">
             <label
               htmlFor="country-filter"
@@ -216,13 +243,17 @@ export default function Home() {
             >
               Region
             </label>
+
             <select
               id="country-filter"
               value={selectedCountry}
               onChange={(e) => handleCountryChange(e.target.value)}
               className="rounded-lg border border-[rgba(45,212,191,0.2)] bg-[#06161a] px-3 py-1.5 text-xs font-semibold text-[#f0fdfa] transition hover:border-[#2dd4bf] focus:border-[#2dd4bf] focus:outline-none"
             >
-              <option value="All">All Regions ({availableCountries.length})</option>
+              <option value="All">
+                All Regions ({availableCountries.length})
+              </option>
+
               {availableCountries.map((country) => (
                 <option key={country} value={country}>
                   {country}
@@ -231,10 +262,9 @@ export default function Home() {
             </select>
           </div>
 
-          {/* Data Provenance Badge */}
           <DataStatusBadge />
 
-          {/* Analytics Drawer Toggle */}
+          {/* Analytics toggle */}
           <button
             type="button"
             onClick={() => setIsAnalyticsOpen((v) => !v)}
@@ -247,10 +277,12 @@ export default function Home() {
             }`}
           >
             <span>📊 Analytics</span>
-            <span className="text-[10px] opacity-75">{isAnalyticsOpen ? "▲" : "▼"}</span>
+            <span className="text-[10px] opacity-75">
+              {isAnalyticsOpen ? "▲" : "▼"}
+            </span>
           </button>
 
-          {/* Slide-over Intelligence Panel Toggle */}
+          {/* Intelligence panel toggle */}
           <button
             type="button"
             onClick={() => setIsIntelligenceOpen((v) => !v)}
@@ -263,12 +295,13 @@ export default function Home() {
             }`}
           >
             <span>◈ Intelligence</span>
+
             {selectedSettlement && (
               <span className="flex h-2 w-2 rounded-full bg-[#2dd4bf] shadow-[0_0_6px_rgba(45,212,191,0.8)]" />
             )}
           </button>
 
-          {/* Project Info Button */}
+          {/* Project information */}
           <button
             type="button"
             onClick={() => setIsInfoModalOpen(true)}
@@ -281,15 +314,14 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Synthetic Data Notice Sub-bar */}
+      {/* Synthetic data notice */}
       <div className="relative z-30 w-full border-b border-amber-400/20 bg-[#06161a]/90 px-4 py-1.5 backdrop-blur-md">
         <SyntheticDataDisclaimer />
       </div>
 
-      {/* ── MAIN VIEWPORT CANVAS: FULLSCREEN MAP ──────────────────────────── */}
+      {/* Main viewport */}
       <main className="relative flex-1 overflow-hidden">
-
-        {/* Full-screen Leaflet Map */}
+        {/* Full-screen map */}
         {!loading && !error && analysisData && (
           <div className="h-full w-full">
             <HealthcareMap
@@ -302,82 +334,99 @@ export default function Home() {
           </div>
         )}
 
-        {/* Loading State */}
+        {/* Loading state */}
         {loading && (
           <div className="flex h-full w-full items-center justify-center bg-[#06161a]">
             <div className="rounded-xl border border-[rgba(45,212,191,0.2)] bg-[#0a1f24] p-8 text-center shadow-2xl">
               <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-2 border-[rgba(45,212,191,0.2)] border-t-[#2dd4bf]" />
+
               <h2 className="text-sm font-bold uppercase tracking-wider text-white">
                 Connecting to Geospatial Engine
               </h2>
+
               <p className="mt-1 text-xs text-[#94a3b8]">
-                Loading settlement matrices, catchment polygons & Haversine distances...
+                Loading settlement matrices, catchment polygons &amp;
+                Haversine distances...
               </p>
             </div>
           </div>
         )}
 
-        {/* Error State */}
+        {/* Error state */}
         {!loading && error && (
           <div className="flex h-full w-full items-center justify-center bg-[#06161a] p-4">
             <div className="max-w-md rounded-xl border border-red-500/30 bg-[#0a1f24] p-6 text-center shadow-2xl">
               <div className="mb-3 text-3xl">⚠</div>
+
               <h2 className="text-base font-bold text-red-300">
                 Analysis Engine Offline
               </h2>
+
               <p className="mt-2 text-xs leading-relaxed text-[#94a3b8]">
-                Unable to establish connection to the FastAPI backend service at{" "}
-                <code className="text-[#2dd4bf]">
-                  {process.env.NEXT_PUBLIC_API_URL ||
-                    "https://poc-51-rural-remote-healthcare-access.onrender.com"}
+                Unable to establish a connection to the FastAPI backend at{" "}
+                <code className="break-all text-[#2dd4bf]">
+                  {API_BASE_URL}
                 </code>
-                . Please verify the backend server is running.
+                . Please verify the backend service and browser network
+                connection.
               </p>
+
               <div className="mt-4 rounded-lg border border-[rgba(45,212,191,0.15)] bg-[#06161a] p-3 text-left">
-                <p className="text-[10px] text-[#64748b]">Start backend command:</p>
-                <code className="mt-1 block text-xs text-[#2dd4bf]">
-                  uvicorn app.main:app --port 8000
+                <p className="text-[10px] text-[#64748b]">
+                  Backend start command:
+                </p>
+
+                <code className="mt-1 block break-all text-xs text-[#2dd4bf]">
+                  uvicorn app.main:app --host 0.0.0.0 --port $PORT
                 </code>
               </div>
             </div>
           </div>
         )}
 
-        {/* ── EXPANDABLE ANALYTICS TRAY / BOTTOM DOCK ──────────────────────── */}
+        {/* Expandable analytics tray */}
         {!loading && !error && analysisData && (
           <div
-            className={`absolute right-4 bottom-0 left-4 z-[1050] transition-all duration-300 sm:left-6 ${
+            className={`absolute bottom-0 left-4 right-4 z-[1050] transition-all duration-300 sm:left-6 ${
               isIntelligenceOpen ? "sm:right-[456px]" : "sm:right-6"
             }`}
           >
             <div className="overflow-hidden rounded-t-xl border border-b-0 border-[rgba(45,212,191,0.2)] bg-[#0a1f24]/95 shadow-2xl backdrop-blur-md">
-              {/* Drawer Top Bar / Tab Strip */}
+              {/* Drawer header and tabs */}
               <div className="flex flex-wrap items-center justify-between border-b border-[rgba(45,212,191,0.15)] bg-[#06161a]/90 px-4 py-2">
-                {/* Metric Summary Chips */}
+                {/* Metric summary */}
                 <div className="flex items-center gap-3 text-xs">
                   <div className="flex items-center gap-1.5 font-semibold text-white">
                     <span className="h-2 w-2 rounded-full bg-[#2dd4bf]" />
                     <span>{filteredResults.length} Settlements</span>
                   </div>
+
                   <span className="text-[#64748b]">|</span>
+
                   <div className="flex items-center gap-1.5 text-red-400">
                     <span>
                       {filteredUnderserved.length} Underserved (
                       {filteredResults.length > 0
                         ? Math.round(
-                            (filteredUnderserved.length / filteredResults.length) * 100
+                            (filteredUnderserved.length /
+                              filteredResults.length) *
+                              100
                           )
                         : 0}
                       %)
                     </span>
                   </div>
+
                   <span className="hidden text-[#64748b] md:inline">|</span>
+
                   <div className="hidden items-center gap-1.5 text-[#94a3b8] md:flex">
-                    <span>Avg Distance: {averageDistance.toFixed(1)} km</span>
+                    <span>
+                      Avg Distance: {averageDistance.toFixed(1)} km
+                    </span>
                   </div>
                 </div>
 
-                {/* Tab Navigation Buttons */}
+                {/* Tab navigation */}
                 <div className="flex items-center gap-1">
                   {(
                     [
@@ -393,7 +442,10 @@ export default function Home() {
                       type="button"
                       onClick={() => {
                         setActiveTab(tab.id);
-                        if (!isAnalyticsOpen) setIsAnalyticsOpen(true);
+
+                        if (!isAnalyticsOpen) {
+                          setIsAnalyticsOpen(true);
+                        }
                       }}
                       className={`rounded px-2.5 py-1 text-[11px] font-semibold transition ${
                         activeTab === tab.id && isAnalyticsOpen
@@ -409,7 +461,9 @@ export default function Home() {
                     type="button"
                     onClick={() => setIsAnalyticsOpen((v) => !v)}
                     aria-label={
-                      isAnalyticsOpen ? "Minimize analytics drawer" : "Expand analytics drawer"
+                      isAnalyticsOpen
+                        ? "Minimize analytics drawer"
+                        : "Expand analytics drawer"
                     }
                     className="ml-2 flex h-6 w-6 items-center justify-center rounded border border-[rgba(45,212,191,0.2)] bg-[#0e2a30] text-[10px] text-[#94a3b8] transition hover:bg-[#133840] hover:text-[#2dd4bf]"
                   >
@@ -418,7 +472,7 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Drawer Content Body (when expanded) */}
+              {/* Drawer content */}
               {isAnalyticsOpen && (
                 <div className="max-h-[340px] overflow-y-auto p-4 transition-all">
                   {activeTab === "metrics" && (
@@ -434,7 +488,9 @@ export default function Home() {
                     <RankingTable
                       results={filteredUnderserved}
                       onSelectSettlement={handleSettlementSelect}
-                      selectedSettlementId={selectedSettlement?.settlement_id}
+                      selectedSettlementId={
+                        selectedSettlement?.settlement_id
+                      }
                     />
                   )}
 
@@ -462,7 +518,7 @@ export default function Home() {
         )}
       </main>
 
-      {/* ── SLIDE-OVER INTELLIGENCE PANEL ─────────────────────────────────── */}
+      {/* Settlement intelligence sidebar */}
       <IntelligenceSidebar
         isOpen={isIntelligenceOpen}
         onClose={() => setIsIntelligenceOpen(false)}
@@ -472,13 +528,15 @@ export default function Home() {
           analysisData
             ? selectedCountry === "All"
               ? analysisData.total_facilities
-              : new Set(filteredResults.map((item) => item.nearest_facility)).size
+              : new Set(
+                  filteredResults.map((item) => item.nearest_facility)
+                ).size
             : 0
         }
         onSelectSettlement={handleSettlementSelect}
       />
 
-      {/* ── PROJECT INFORMATION MODAL ─────────────────────────────────────── */}
+      {/* Project information modal */}
       <ProjectInfoModal
         isOpen={isInfoModalOpen}
         onClose={() => setIsInfoModalOpen(false)}
@@ -486,3 +544,4 @@ export default function Home() {
     </div>
   );
 }
+```
