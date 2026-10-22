@@ -93,7 +93,7 @@ export default function Home() {
 
         if (!response.ok) {
           throw new Error(
-            `Analysis service returned HTTP ${response.status}`
+            "Analysis service returned HTTP " + response.status
           );
         }
 
