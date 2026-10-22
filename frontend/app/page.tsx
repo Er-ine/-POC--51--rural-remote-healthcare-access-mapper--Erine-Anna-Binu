@@ -14,10 +14,6 @@ import DataStatusBadge from "@/components/DataStatusBadge";
 import SyntheticDataDisclaimer from "@/components/SyntheticDataDisclaimer";
 import ProjectInfoModal from "@/components/ProjectInfoModal";
 
-/**
- * Backend API configuration.
- * NEXT_PUBLIC_API_URL can override this URL in the frontend environment.
- */
 const API_BASE_URL = (
   process.env.NEXT_PUBLIC_API_URL ||
   "https://poc-51-rural-remote-healthcare-access.onrender.com"
@@ -60,9 +56,7 @@ type AnalyticsTab = "metrics" | "ranking" | "scatter" | "clinic" | "policy";
 export default function Home() {
   const [analysisData, setAnalysisData] =
     useState<AnalysisResponse | null>(null);
-
   const [selectedCountry, setSelectedCountry] = useState<string>("All");
-
   const [selectedSettlement, setSelectedSettlement] =
     useState<AccessibilityResult | null>(null);
 
@@ -74,7 +68,6 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
-  // Fetch accessibility analysis from the deployed FastAPI backend.
   useEffect(() => {
     let cancelled = false;
 
@@ -85,9 +78,7 @@ export default function Home() {
           {
             method: "GET",
             cache: "no-store",
-            headers: {
-              Accept: "application/json",
-            },
+            headers: { Accept: "application/json" },
           }
         );
 
@@ -99,7 +90,6 @@ export default function Home() {
 
         const data: AnalysisResponse = await response.json();
 
-        // Validate the response shape before rendering the dashboard.
         if (
           !data ||
           !Array.isArray(data.all_results) ||
@@ -114,14 +104,9 @@ export default function Home() {
         }
       } catch (err) {
         console.error("Accessibility API request error:", err);
-
-        if (!cancelled) {
-          setError(true);
-        }
+        if (!cancelled) setError(true);
       } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+        if (!cancelled) setLoading(false);
       }
     }
 
@@ -132,7 +117,6 @@ export default function Home() {
     };
   }, []);
 
-  // Close open panels and the modal with the Escape key.
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -147,71 +131,53 @@ export default function Home() {
     };
 
     window.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isInfoModalOpen, isIntelligenceOpen, isAnalyticsOpen]);
 
-  // Derive available countries from the backend response.
   const availableCountries = useMemo(() => {
-    if (!analysisData) {
-      return [];
-    }
+    if (!analysisData) return [];
 
     return Array.from(
       new Set(analysisData.all_results.map((result) => result.country))
     ).sort();
   }, [analysisData]);
 
-  // Filter settlements by the selected country.
   const filteredResults = useMemo(() => {
-    if (!analysisData) {
-      return [];
-    }
+    if (!analysisData) return [];
 
-    if (selectedCountry === "All") {
-      return analysisData.all_results;
-    }
+    if (selectedCountry === "All") return analysisData.all_results;
 
     return analysisData.all_results.filter(
       (result) => result.country === selectedCountry
     );
   }, [analysisData, selectedCountry]);
 
-  // Filter underserved settlements.
-  const filteredUnderserved = useMemo(() => {
-    return filteredResults.filter(
-      (result) => result.accessibility_status === "Underserved"
-    );
-  }, [filteredResults]);
+  const filteredUnderserved = useMemo(
+    () =>
+      filteredResults.filter(
+        (result) => result.accessibility_status === "Underserved"
+      ),
+    [filteredResults]
+  );
 
-  // Calculate population for the filtered settlements.
-  const totalPopulation = useMemo(() => {
-    return filteredResults.reduce(
-      (sum, result) => sum + result.population,
-      0
-    );
-  }, [filteredResults]);
+  const totalPopulation = useMemo(
+    () =>
+      filteredResults.reduce((sum, result) => sum + result.population, 0),
+    [filteredResults]
+  );
 
-  // Calculate average distance to the nearest facility.
   const averageDistance = useMemo(() => {
-    if (filteredResults.length === 0) {
-      return 0;
-    }
+    if (filteredResults.length === 0) return 0;
 
     return (
-      filteredResults.reduce(
-        (sum, result) => sum + result.distance_km,
-        0
-      ) / filteredResults.length
+      filteredResults.reduce((sum, result) => sum + result.distance_km, 0) /
+      filteredResults.length
     );
   }, [filteredResults]);
 
   const handleCountryChange = (country: string) => {
     setSelectedCountry(country);
 
-    // Clear the selected settlement if it is outside the new filter.
     if (
       selectedSettlement &&
       country !== "All" &&
@@ -228,9 +194,7 @@ export default function Home() {
 
   return (
     <div className="relative flex h-screen w-screen flex-col overflow-hidden bg-[#06161a] text-[#f0fdfa]">
-      {/* Cinematic header */}
       <header className="relative z-40 flex h-14 flex-shrink-0 items-center justify-between border-b border-[rgba(45,212,191,0.18)] bg-[#0a1f24]/95 px-4 backdrop-blur-md lg:px-6">
-        {/* Brand and project identity */}
         <div className="flex items-center gap-3">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-[rgba(45,212,191,0.3)] bg-[rgba(45,212,191,0.1)] shadow-[0_0_12px_rgba(45,212,191,0.25)]">
             <span className="text-sm font-bold text-[#2dd4bf]">✚</span>
@@ -241,7 +205,6 @@ export default function Home() {
               <span className="hidden text-[10px] font-bold uppercase tracking-widest text-[#2dd4bf] sm:inline">
                 Healthcare Access Intelligence
               </span>
-
               <span className="hidden rounded bg-[#0e2a30] px-1.5 py-0.5 text-[9px] text-[#94a3b8] sm:inline">
                 POC-51
               </span>
@@ -249,20 +212,15 @@ export default function Home() {
 
             <h1 className="text-xs font-bold tracking-tight text-white sm:text-sm">
               <span className="hidden md:inline">
-                Infocreon Internship — Rural &amp; Remote Healthcare Access
-                Gap Mapper
+                Infocreon Internship — Rural &amp; Remote Healthcare Access Gap
+                Mapper
               </span>
-
-              <span className="md:hidden">
-                Healthcare Access Gap Mapper
-              </span>
+              <span className="md:hidden">Healthcare Access Gap Mapper</span>
             </h1>
           </div>
         </div>
 
-        {/* Header controls */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Country filter */}
           <div className="flex items-center gap-1.5">
             <label
               htmlFor="country-filter"
@@ -280,7 +238,6 @@ export default function Home() {
               <option value="All">
                 All Regions ({availableCountries.length})
               </option>
-
               {availableCountries.map((country) => (
                 <option key={country} value={country}>
                   {country}
@@ -291,17 +248,17 @@ export default function Home() {
 
           <DataStatusBadge />
 
-          {/* Analytics drawer toggle */}
           <button
             type="button"
             onClick={() => setIsAnalyticsOpen((value) => !value)}
             aria-expanded={isAnalyticsOpen}
             aria-label="Toggle analytics drawer"
-            className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition ${
-              isAnalyticsOpen
+            className={
+              "flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition " +
+              (isAnalyticsOpen
                 ? "border-[#2dd4bf] bg-[rgba(45,212,191,0.15)] text-[#2dd4bf]"
-                : "border-[rgba(45,212,191,0.2)] bg-[#0e2a30] text-[#94a3b8] hover:bg-[#133840] hover:text-[#f0fdfa]"
-            }`}
+                : "border-[rgba(45,212,191,0.2)] bg-[#0e2a30] text-[#94a3b8] hover:bg-[#133840] hover:text-[#f0fdfa]")
+            }
           >
             <span>📊 Analytics</span>
             <span className="text-[10px] opacity-75">
@@ -309,26 +266,24 @@ export default function Home() {
             </span>
           </button>
 
-          {/* Intelligence panel toggle */}
           <button
             type="button"
             onClick={() => setIsIntelligenceOpen((value) => !value)}
             aria-expanded={isIntelligenceOpen}
             aria-label="Toggle settlement intelligence slide-over panel"
-            className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition ${
-              isIntelligenceOpen
+            className={
+              "flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition " +
+              (isIntelligenceOpen
                 ? "border-[#2dd4bf] bg-[rgba(45,212,191,0.15)] text-[#2dd4bf]"
-                : "border-[rgba(45,212,191,0.2)] bg-[#0e2a30] text-[#94a3b8] hover:bg-[#133840] hover:text-[#f0fdfa]"
-            }`}
+                : "border-[rgba(45,212,191,0.2)] bg-[#0e2a30] text-[#94a3b8] hover:bg-[#133840] hover:text-[#f0fdfa]")
+            }
           >
             <span>◈ Intelligence</span>
-
             {selectedSettlement && (
               <span className="flex h-2 w-2 rounded-full bg-[#2dd4bf] shadow-[0_0_6px_rgba(45,212,191,0.8)]" />
             )}
           </button>
 
-          {/* Project information */}
           <button
             type="button"
             onClick={() => setIsInfoModalOpen(true)}
@@ -341,14 +296,11 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Synthetic data notice */}
       <div className="relative z-30 w-full border-b border-amber-400/20 bg-[#06161a]/90 px-4 py-1.5 backdrop-blur-md">
         <SyntheticDataDisclaimer />
       </div>
 
-      {/* Main viewport */}
       <main className="relative flex-1 overflow-hidden">
-        {/* Full-screen healthcare map */}
         {!loading && !error && analysisData && (
           <div className="h-full w-full">
             <HealthcareMap
@@ -361,34 +313,28 @@ export default function Home() {
           </div>
         )}
 
-        {/* Loading state */}
         {loading && (
           <div className="flex h-full w-full items-center justify-center bg-[#06161a]">
             <div className="rounded-xl border border-[rgba(45,212,191,0.2)] bg-[#0a1f24] p-8 text-center shadow-2xl">
               <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-2 border-[rgba(45,212,191,0.2)] border-t-[#2dd4bf]" />
-
               <h2 className="text-sm font-bold uppercase tracking-wider text-white">
                 Connecting to Geospatial Engine
               </h2>
-
               <p className="mt-1 text-xs text-[#94a3b8]">
-                Loading settlement matrices, catchment polygons &amp;
-                Haversine distances...
+                Loading settlement matrices, catchment polygons &amp; Haversine
+                distances...
               </p>
             </div>
           </div>
         )}
 
-        {/* Error state */}
         {!loading && error && (
           <div className="flex h-full w-full items-center justify-center bg-[#06161a] p-4">
             <div className="max-w-md rounded-xl border border-red-500/30 bg-[#0a1f24] p-6 text-center shadow-2xl">
               <div className="mb-3 text-3xl">⚠</div>
-
               <h2 className="text-base font-bold text-red-300">
                 Analysis Engine Offline
               </h2>
-
               <p className="mt-2 text-xs leading-relaxed text-[#94a3b8]">
                 Unable to connect to the FastAPI backend at{" "}
                 <code className="break-all text-[#2dd4bf]">
@@ -397,12 +343,10 @@ export default function Home() {
                 . Check the backend service, browser network connection, and
                 CORS configuration.
               </p>
-
               <div className="mt-4 rounded-lg border border-[rgba(45,212,191,0.15)] bg-[#06161a] p-3 text-left">
                 <p className="text-[10px] text-[#64748b]">
                   Backend start command:
                 </p>
-
                 <code className="mt-1 block break-all text-xs text-[#2dd4bf]">
                   uvicorn app.main:app --host 0.0.0.0 --port $PORT
                 </code>
@@ -411,17 +355,15 @@ export default function Home() {
           </div>
         )}
 
-        {/* Expandable analytics tray */}
         {!loading && !error && analysisData && (
           <div
-            className={`absolute bottom-0 left-4 right-4 z-[1050] transition-all duration-300 sm:left-6 ${
-              isIntelligenceOpen ? "sm:right-[456px]" : "sm:right-6"
-            }`}
+            className={
+              "absolute bottom-0 left-4 right-4 z-[1050] transition-all duration-300 sm:left-6 " +
+              (isIntelligenceOpen ? "sm:right-[456px]" : "sm:right-6")
+            }
           >
             <div className="overflow-hidden rounded-t-xl border border-b-0 border-[rgba(45,212,191,0.2)] bg-[#0a1f24]/95 shadow-2xl backdrop-blur-md">
-              {/* Drawer header and tabs */}
               <div className="flex flex-wrap items-center justify-between border-b border-[rgba(45,212,191,0.15)] bg-[#06161a]/90 px-4 py-2">
-                {/* Metric summary */}
                 <div className="flex items-center gap-3 text-xs">
                   <div className="flex items-center gap-1.5 font-semibold text-white">
                     <span className="h-2 w-2 rounded-full bg-[#2dd4bf]" />
@@ -453,7 +395,6 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* Analytics tab navigation */}
                 <div className="flex items-center gap-1">
                   {(
                     [
@@ -469,16 +410,14 @@ export default function Home() {
                       type="button"
                       onClick={() => {
                         setActiveTab(tab.id);
-
-                        if (!isAnalyticsOpen) {
-                          setIsAnalyticsOpen(true);
-                        }
+                        if (!isAnalyticsOpen) setIsAnalyticsOpen(true);
                       }}
-                      className={`rounded px-2.5 py-1 text-[11px] font-semibold transition ${
-                        activeTab === tab.id && isAnalyticsOpen
+                      className={
+                        "rounded px-2.5 py-1 text-[11px] font-semibold transition " +
+                        (activeTab === tab.id && isAnalyticsOpen
                           ? "bg-[#2dd4bf] text-[#06161a]"
-                          : "text-[#94a3b8] hover:bg-[#0e2a30] hover:text-white"
-                      }`}
+                          : "text-[#94a3b8] hover:bg-[#0e2a30] hover:text-white")
+                      }
                     >
                       {tab.label}
                     </button>
@@ -499,7 +438,6 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Analytics content */}
               {isAnalyticsOpen && (
                 <div className="max-h-[340px] overflow-y-auto p-4 transition-all">
                   {activeTab === "metrics" && (
@@ -515,9 +453,7 @@ export default function Home() {
                     <RankingTable
                       results={filteredUnderserved}
                       onSelectSettlement={handleSettlementSelect}
-                      selectedSettlementId={
-                        selectedSettlement?.settlement_id
-                      }
+                      selectedSettlementId={selectedSettlement?.settlement_id}
                     />
                   )}
 
@@ -545,7 +481,6 @@ export default function Home() {
         )}
       </main>
 
-      {/* Settlement intelligence sidebar */}
       <IntelligenceSidebar
         isOpen={isIntelligenceOpen}
         onClose={() => setIsIntelligenceOpen(false)}
@@ -563,7 +498,6 @@ export default function Home() {
         onSelectSettlement={handleSettlementSelect}
       />
 
-      {/* Project information modal */}
       <ProjectInfoModal
         isOpen={isInfoModalOpen}
         onClose={() => setIsInfoModalOpen(false)}
@@ -572,3 +506,4 @@ export default function Home() {
   );
 }
 ```
+
