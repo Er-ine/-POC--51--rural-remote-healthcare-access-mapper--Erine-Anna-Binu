@@ -14,9 +14,14 @@ import DataStatusBadge from "@/components/DataStatusBadge";
 import SyntheticDataDisclaimer from "@/components/SyntheticDataDisclaimer";
 import ProjectInfoModal from "@/components/ProjectInfoModal";
 
-const API_BASE_URL =
+/**
+ * Backend API configuration.
+ * NEXT_PUBLIC_API_URL can override this URL in the frontend environment.
+ */
+const API_BASE_URL = (
   process.env.NEXT_PUBLIC_API_URL ||
-  "https://poc-51-rural-remote-healthcare-access.onrender.com";
+  "https://poc-51-rural-remote-healthcare-access.onrender.com"
+).replace(/\/+$/, "");
 
 const HealthcareMap = dynamic(() => import("@/components/HealthcareMap"), {
   ssr: false,
@@ -69,7 +74,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
-  // Fetch analysis results from the deployed FastAPI backend.
+  // Fetch accessibility analysis from the deployed FastAPI backend.
   useEffect(() => {
     let cancelled = false;
 
@@ -78,17 +83,30 @@ export default function Home() {
         const response = await fetch(
           `${API_BASE_URL}/api/analysis/underserved-areas`,
           {
+            method: "GET",
             cache: "no-store",
+            headers: {
+              Accept: "application/json",
+            },
           }
         );
 
         if (!response.ok) {
           throw new Error(
-            `Analysis service returned status ${response.status}`
+            `Analysis service returned HTTP ${response.status}`
           );
         }
 
         const data: AnalysisResponse = await response.json();
+
+        // Validate the response shape before rendering the dashboard.
+        if (
+          !data ||
+          !Array.isArray(data.all_results) ||
+          !Array.isArray(data.underserved_areas)
+        ) {
+          throw new Error("The analysis API returned an unexpected response.");
+        }
 
         if (!cancelled) {
           setAnalysisData(data);
@@ -114,10 +132,10 @@ export default function Home() {
     };
   }, []);
 
-  // Global Escape key handler for open panels and modal.
+  // Close open panels and the modal with the Escape key.
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
         if (isInfoModalOpen) {
           setIsInfoModalOpen(false);
         } else if (isIntelligenceOpen) {
@@ -137,16 +155,20 @@ export default function Home() {
 
   // Derive available countries from the backend response.
   const availableCountries = useMemo(() => {
-    if (!analysisData) return [];
+    if (!analysisData) {
+      return [];
+    }
 
     return Array.from(
       new Set(analysisData.all_results.map((result) => result.country))
     ).sort();
   }, [analysisData]);
 
-  // Apply the selected country filter.
+  // Filter settlements by the selected country.
   const filteredResults = useMemo(() => {
-    if (!analysisData) return [];
+    if (!analysisData) {
+      return [];
+    }
 
     if (selectedCountry === "All") {
       return analysisData.all_results;
@@ -157,12 +179,14 @@ export default function Home() {
     );
   }, [analysisData, selectedCountry]);
 
+  // Filter underserved settlements.
   const filteredUnderserved = useMemo(() => {
     return filteredResults.filter(
       (result) => result.accessibility_status === "Underserved"
     );
   }, [filteredResults]);
 
+  // Calculate population for the filtered settlements.
   const totalPopulation = useMemo(() => {
     return filteredResults.reduce(
       (sum, result) => sum + result.population,
@@ -170,8 +194,11 @@ export default function Home() {
     );
   }, [filteredResults]);
 
+  // Calculate average distance to the nearest facility.
   const averageDistance = useMemo(() => {
-    if (filteredResults.length === 0) return 0;
+    if (filteredResults.length === 0) {
+      return 0;
+    }
 
     return (
       filteredResults.reduce(
@@ -184,7 +211,7 @@ export default function Home() {
   const handleCountryChange = (country: string) => {
     setSelectedCountry(country);
 
-    // Clear a selected settlement if it falls outside the new filter.
+    // Clear the selected settlement if it is outside the new filter.
     if (
       selectedSettlement &&
       country !== "All" &&
@@ -247,7 +274,7 @@ export default function Home() {
             <select
               id="country-filter"
               value={selectedCountry}
-              onChange={(e) => handleCountryChange(e.target.value)}
+              onChange={(event) => handleCountryChange(event.target.value)}
               className="rounded-lg border border-[rgba(45,212,191,0.2)] bg-[#06161a] px-3 py-1.5 text-xs font-semibold text-[#f0fdfa] transition hover:border-[#2dd4bf] focus:border-[#2dd4bf] focus:outline-none"
             >
               <option value="All">
@@ -264,10 +291,10 @@ export default function Home() {
 
           <DataStatusBadge />
 
-          {/* Analytics toggle */}
+          {/* Analytics drawer toggle */}
           <button
             type="button"
-            onClick={() => setIsAnalyticsOpen((v) => !v)}
+            onClick={() => setIsAnalyticsOpen((value) => !value)}
             aria-expanded={isAnalyticsOpen}
             aria-label="Toggle analytics drawer"
             className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition ${
@@ -285,7 +312,7 @@ export default function Home() {
           {/* Intelligence panel toggle */}
           <button
             type="button"
-            onClick={() => setIsIntelligenceOpen((v) => !v)}
+            onClick={() => setIsIntelligenceOpen((value) => !value)}
             aria-expanded={isIntelligenceOpen}
             aria-label="Toggle settlement intelligence slide-over panel"
             className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition ${
@@ -321,7 +348,7 @@ export default function Home() {
 
       {/* Main viewport */}
       <main className="relative flex-1 overflow-hidden">
-        {/* Full-screen map */}
+        {/* Full-screen healthcare map */}
         {!loading && !error && analysisData && (
           <div className="h-full w-full">
             <HealthcareMap
@@ -363,12 +390,12 @@ export default function Home() {
               </h2>
 
               <p className="mt-2 text-xs leading-relaxed text-[#94a3b8]">
-                Unable to establish a connection to the FastAPI backend at{" "}
+                Unable to connect to the FastAPI backend at{" "}
                 <code className="break-all text-[#2dd4bf]">
                   {API_BASE_URL}
                 </code>
-                . Please verify the backend service and browser network
-                connection.
+                . Check the backend service, browser network connection, and
+                CORS configuration.
               </p>
 
               <div className="mt-4 rounded-lg border border-[rgba(45,212,191,0.15)] bg-[#06161a] p-3 text-left">
@@ -426,7 +453,7 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* Tab navigation */}
+                {/* Analytics tab navigation */}
                 <div className="flex items-center gap-1">
                   {(
                     [
@@ -459,7 +486,7 @@ export default function Home() {
 
                   <button
                     type="button"
-                    onClick={() => setIsAnalyticsOpen((v) => !v)}
+                    onClick={() => setIsAnalyticsOpen((value) => !value)}
                     aria-label={
                       isAnalyticsOpen
                         ? "Minimize analytics drawer"
@@ -472,7 +499,7 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Drawer content */}
+              {/* Analytics content */}
               {isAnalyticsOpen && (
                 <div className="max-h-[340px] overflow-y-auto p-4 transition-all">
                   {activeTab === "metrics" && (
