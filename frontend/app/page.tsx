@@ -67,7 +67,9 @@ export default function Home() {
     async function fetchAnalysis() {
       try {
         const apiBase =
-          process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+          process.env.NEXT_PUBLIC_API_URL ||
+          "https://poc-51-rural-remote-healthcare-access.onrender.com";
+
         const response = await fetch(
           `${apiBase}/api/analysis/underserved-areas`,
           {
@@ -326,7 +328,8 @@ export default function Home() {
               <p className="mt-2 text-xs leading-relaxed text-[#94a3b8]">
                 Unable to establish connection to the FastAPI backend service at{" "}
                 <code className="text-[#2dd4bf]">
-                  {process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"}
+                  {process.env.NEXT_PUBLIC_API_URL ||
+                    "https://poc-51-rural-remote-healthcare-access.onrender.com"}
                 </code>
                 . Please verify the backend server is running.
               </p>
